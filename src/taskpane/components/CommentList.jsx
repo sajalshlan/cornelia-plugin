@@ -1,6 +1,8 @@
 import React from 'react';
-import { List, Card } from 'antd';
+import { List, Card, Typography } from 'antd';
 import { logger } from '../../api';
+
+const { Text } = Typography;
 
 const CommentList = ({ comments }) => {
   const navigateToComment = async (commentId) => {
@@ -11,15 +13,15 @@ const CommentList = ({ comments }) => {
         docComments.load("items");
         await context.sync();
 
-        logger.info('docComments', docComments);
+        // logger.info('docComments', docComments);
 
         // Find the comment by ID
         const comment = docComments.items.find(c => c.id === commentId);
-        logger.info('comment', comment);
+        // logger.info('comment', comment);
         
         if (comment) {
           // Load the comment's content range
-          logger.info('hello');
+          // logger.info('hello');
           const contentRange = comment.getRange();
           contentRange.load("text");
           await context.sync();
@@ -37,6 +39,29 @@ const CommentList = ({ comments }) => {
       logger.error('Error navigating to comment:', { error, commentId });
       console.error('Failed to navigate to comment:', error);
     }
+  };
+
+  const renderReplies = (replies) => {
+    if (!replies || replies.length === 0) return null;
+
+    return (
+      <div className="ml-4 mt-4 border-l-2 border-gray-200 pl-4">
+        <Text type="secondary" className="text-sm mb-2 block">
+          Replies ({replies.length})
+        </Text>
+        {replies.map((reply, index) => (
+          <div key={reply.id || index} className="mb-3">
+            <div className="text-sm">
+              <Text strong>{reply.author}</Text>
+              <Text type="secondary" className="ml-2">
+                {new Date(reply.date).toLocaleString()}
+              </Text>
+            </div>
+            <div className="mt-1">{reply.content}</div>
+          </div>
+        ))}
+      </div>
+    );
   };
 
   if (!comments.length) {
@@ -64,6 +89,7 @@ const CommentList = ({ comments }) => {
           <div className="comment-metadata text-sm text-gray-500 mt-2">
             {new Date(comment.date).toLocaleString()}
           </div>
+          {renderReplies(comment.replies)}
         </Card>
       )}
     />

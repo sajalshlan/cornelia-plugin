@@ -21,28 +21,52 @@ const App = () => {
 
   const readDocument = async () => {
     try {
+      // logger.info('Starting to read document');
       await Word.run(async (context) => {
         const body = context.document.body;
         const docComments = context.document.body.getComments();
         
         body.load("text");
-        docComments.load();
+        docComments.load("items");
         await context.sync();
+        
         setDocumentContent(body.text);
         
-        const processedComments = docComments.items.map((comment, index) => ({
-          id: comment.id || `comment-${index}`,
-          content: comment.content || '',
-          author: comment.authorName || 'Unknown Author',
-          authorEmail: comment.authorEmail || '',
-          resolved: comment.resolved || false,
-          date: comment.created ? new Date(comment.created).toISOString() : new Date().toISOString(),
+        // Load all properties for comments including replies
+        docComments.items.forEach(comment => {
+          comment.load(["id", "authorName", "text", "created", "replies"]);
+        });
+        await context.sync();
 
-        }));
+        const processedComments = docComments.items.map(comment => {
+          // Get replies for each comment
+          const replies = comment.replies ? comment.replies.items.map(reply => ({
+            id: reply.id,
+            content: reply.content || '',
+            author: reply.authorName || 'Unknown Author',
+            date: reply.created ? new Date(reply.created).toISOString() : new Date().toISOString(),
+          })) : [];
+
+          // logger.info('Processing comment with replies:', {
+          //   commentId: comment.id,
+          //   replyCount: replies.length
+          // });
+
+          return {
+            id: comment.id,
+            content: comment.content || '',
+            author: comment.authorName || 'Unknown Author',
+            authorEmail: comment.authorEmail || '',
+            resolved: comment.resolved || false,
+            date: comment.created ? new Date(comment.created).toISOString() : new Date().toISOString(),
+            replies: replies
+          };
+        });
         
         setComments(processedComments);
       });
     } catch (error) {
+      // logger.error("Error reading document:", error);
       console.error("Error reading document:", error);
     }
   };
