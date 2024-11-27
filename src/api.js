@@ -98,22 +98,9 @@ const api = axios.create({
   baseURL: BASE_URL,
   headers: {
     'Content-Type': 'application/json',
-    'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzMyNjkwODc0LCJpYXQiOjE3MzI2ODcyNzQsImp0aSI6IjUyYjY2NjJhOGY3MDQ0YzdiZjkzNDk3Mjc4NjA1ODAzIiwidXNlcl9pZCI6M30.CiXItlQsD0Vmw4hP-ny74cv2g6BgJKUPTbVRi8ovmRY'
+    'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzMyNzM2MjkxLCJpYXQiOjE3MzI3MzI2OTEsImp0aSI6ImNhNzAzNDQ4OTJlZDRjOTlhNWI2MDc4ZTM2OWRlMjVjIiwidXNlcl9pZCI6M30.Ep4D64dwoJDcQXH7hsEnxDQWBrkuyMKbrJLq_O2ssZc'
   },
-  withCredentials: true,
-  proxy: false
 });
-
-const getOfficeHostInfo = () => {
-  if (window.Office && Office.context) {
-    return {
-      host: Office.context.host,
-      platform: Office.context.platform,
-      diagnostics: Office.context.diagnostics
-    };
-  }
-  return null;
-};
 
 // Debug interceptor
 api.interceptors.request.use(request => {
@@ -124,28 +111,6 @@ api.interceptors.request.use(request => {
     baseURL: request.baseURL
   });
   return request;
-});
-
-api.interceptors.request.use(config => {
-  // Add Office context information if available
-  const officeInfo = getOfficeHostInfo();
-  if (officeInfo) {
-    config.headers['X-Office-Context'] = JSON.stringify(officeInfo);
-  }
-  
-  // Add authorization token
-  // const token = 'your-jwt-token'; // Get this from your auth system
-  // if (token) {
-  //   config.headers.Authorization = `Bearer ${token}`;
-  // }
-  
-  // Add additional headers for Office add-in
-  config.headers['Origin'] = window.location.origin;
-  
-  return config;
-}, error => {
-  logger.error('Request config error:', error);
-  return Promise.reject(error);
 });
 
 api.interceptors.response.use(
