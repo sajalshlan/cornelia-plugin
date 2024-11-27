@@ -98,43 +98,43 @@ const api = axios.create({
   baseURL: BASE_URL,
   headers: {
     'Content-Type': 'application/json',
-    'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzMyNzM2MjkxLCJpYXQiOjE3MzI3MzI2OTEsImp0aSI6ImNhNzAzNDQ4OTJlZDRjOTlhNWI2MDc4ZTM2OWRlMjVjIiwidXNlcl9pZCI6M30.Ep4D64dwoJDcQXH7hsEnxDQWBrkuyMKbrJLq_O2ssZc'
+    'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzMyNzQwMzAyLCJpYXQiOjE3MzI3MzY3MDIsImp0aSI6IjgzZWZjMzU3ZjA3OTQwMjc5YWU2MTk1Y2RiMmI2NDVhIiwidXNlcl9pZCI6M30.zH5bs9oYDeZCytxPQUNOplQsmmAKG_PBKvkrGh_rwIo'
   },
 });
 
 // Debug interceptor
-api.interceptors.request.use(request => {
-  logger.info('Starting Request: %O', {
-    url: request.url,
-    method: request.method,
-    headers: request.headers,
-    baseURL: request.baseURL
-  });
-  return request;
-});
+// api.interceptors.request.use(request => {
+//   logger.info('Starting Request: %O', {
+//     url: request.url,
+//     method: request.method,
+//     headers: request.headers,
+//     baseURL: request.baseURL
+//   });
+//   return request;
+// });
 
-api.interceptors.response.use(
-  response => {
-    logger.info('Response: %O', {
-      status: response.status,
-      headers: response.headers,
-      data: response.data
-    });
-    return response;
-  },
-  error => {
-    logger.error('Response Error: %O', {
-      message: error.message,
-      status: error.response?.status,
-      data: error.response?.data,
-      headers: error.response?.headers
-    });
-    return Promise.reject(error);
-  }
-);
+// api.interceptors.response.use(
+//   response => {
+//     logger.info('Response: %O', {
+//       status: response.status,
+//       headers: response.headers,
+//       data: response.data
+//     });
+//     return response;
+//   },
+//   error => {
+//     logger.error('Response Error: %O', {
+//       message: error.message,
+//       status: error.response?.status,
+//       data: error.response?.data,
+//       headers: error.response?.headers
+//     });
+//     return Promise.reject(error);
+//   }
+// );
 
 export const performAnalysis = async (type, text, fileName, onProgress, signal) => {
-  logger.info(`🚀 Starting ${type} analysis for ${fileName}...`);
+  // logger.info(`🚀 Starting ${type} analysis for ${fileName}...`);
   
   try {
     onProgress && onProgress(fileName, 0);
@@ -145,7 +145,7 @@ export const performAnalysis = async (type, text, fileName, onProgress, signal) 
       include_history: type === 'ask'
     };
 
-    logger.info('Request body: %O', requestBody);
+    // logger.info('Request body: %O', requestBody);
 
     const response = await api.post('/perform_analysis/', requestBody, {
       signal,
@@ -157,7 +157,7 @@ export const performAnalysis = async (type, text, fileName, onProgress, signal) 
       }
     });
 
-    logger.info(`✅ ${type} analysis completed for ${fileName}: %O`, response.data);
+    // logger.info(`✅ ${type} analysis completed for ${fileName}: %O`, response.data);
     return response.data.success ? response.data.result : null;
     
   } catch (error) {

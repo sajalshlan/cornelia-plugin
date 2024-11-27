@@ -80,7 +80,7 @@ const App = () => {
             onClick={() => setActiveView(null)}
             className="mr-4"
           />
-          <h2 className="m-0 text-lg">
+          <h2 className="m-0 text-lg font-medium">
             {activeView === 'summary' && 'Document Summary'}
             {activeView === 'comments' && 'Document Comments'}
             {activeView === 'chat' && 'Ask Cornelia'}
@@ -146,9 +146,9 @@ const App = () => {
   };
 
   return (
-    <Layout className="min-h-screen">
+    <Layout className="h-screen">
       {renderHeader()}
-      <Content>
+      <Content className="flex-1 overflow-auto">
         {renderContent()}
       </Content>
     </Layout>

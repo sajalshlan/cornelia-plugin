@@ -12,7 +12,7 @@ const DocumentSummary = ({ documentContent }) => {
   const [progress, setProgress] = useState(0);
 
   const handleGenerateSummary = async () => {
-    logger.info('Generate Summary clicked', { contentLength: documentContent?.length });
+    // logger.info('Generate Summary clicked', { contentLength: documentContent?.length });
     
     if (!documentContent) {
       logger.warn('No document content available');
@@ -23,7 +23,7 @@ const DocumentSummary = ({ documentContent }) => {
     try {
       setIsLoading(true);
       setError(null);
-      logger.info('Starting analysis request');
+      // logger.info('Starting analysis request');
       
       const result = await performAnalysis(
         'shortSummary', 
@@ -34,7 +34,7 @@ const DocumentSummary = ({ documentContent }) => {
         }
       );
 
-      logger.info('Analysis completed successfully', { result });
+      // logger.info('Analysis completed successfully', { result });
       
       if (result) {
         setSummary(result);
@@ -48,7 +48,7 @@ const DocumentSummary = ({ documentContent }) => {
     } finally {
       setIsLoading(false);
       setProgress(0);
-      logger.info('Generate Summary operation completed');
+      // logger.info('Generate Summary operation completed');
     }
   };
 

@@ -1,18 +1,31 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Button, Input, Spin, Typography } from 'antd';
-import { ArrowLeftOutlined, SendOutlined } from '@ant-design/icons';
+import { SendOutlined, CloseOutlined } from '@ant-design/icons';
 import { performAnalysis } from '../../api';
 
 const { Title } = Typography;
 
-const ChatWindow = ({ documentContent, onBack }) => {
+const ChatWindow = ({ documentContent, onClose }) => {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef(null);
+  const chatContainerRef = useRef(null);
+
+  useEffect(() => {
+    // Add initial welcome message
+    if (messages.length === 0) {
+      setMessages([{
+        role: 'assistant',
+        content: 'Hi! I can help you analyze this document. What would you like to know?',
+        isInitialTip: true,
+        timestamp: new Date().toLocaleTimeString()
+      }]);
+    }
+  }, []);
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
   useEffect(() => {
@@ -25,7 +38,7 @@ const ChatWindow = ({ documentContent, onBack }) => {
 
     const newMessage = {
       role: 'user',
-      content: input,
+      content: input.trim(),
       timestamp: new Date().toLocaleTimeString()
     };
 
@@ -51,66 +64,96 @@ const ChatWindow = ({ documentContent, onBack }) => {
       setMessages(prev => [...prev, {
         role: 'assistant',
         content: 'Sorry, I encountered an error. Please try again.',
-        timestamp: new Date().toLocaleTimeString()
+        timestamp: new Date().toLocaleTimeString(),
+        isError: true
       }]);
     } finally {
       setIsLoading(false);
     }
   };
 
-  return (
-    <div className="flex flex-col h-[calc(100vh-32px)]">
-      <div className="flex items-center mb-4">
-        <Button 
-          icon={<ArrowLeftOutlined />} 
-          onClick={onBack}
-          className="mr-4"
-        />
-        <Title level={4} className="m-0">Chat with Cornelia</Title>
-      </div>
+  const renderMessageContent = (content) => {
+    return content.split('\n').map((line, i) => (
+      <p key={i} className={i !== 0 ? 'mt-2' : undefined}>
+        {line}
+      </p>
+    ));
+  };
 
-      <div className="flex-1 overflow-y-auto bg-gray-50 rounded-lg p-4 mb-4">
-        {messages.map((message, index) => (
-          <div
-            key={index}
-            className={`mb-4 ${message.role === 'user' ? 'ml-auto' : 'mr-auto'} max-w-[80%]`}
-          >
-            <div className={`p-3 rounded-lg ${
-              message.role === 'user' 
-                ? 'bg-blue-500 text-white ml-auto' 
-                : 'bg-white border border-gray-200'
-            }`}>
-              {message.content}
+  return (
+    <div className="flex flex-col h-full bg-white">
+
+
+      {/* Messages */}
+      <div className="flex-1 overflow-y-auto p-4" ref={chatContainerRef}>
+        {messages.map((message, index) => {
+          const isSystemMessage = message.isInitialTip || message.isError;
+          
+          return (
+            <div 
+              key={index} 
+              className={`mb-4 ${
+                isSystemMessage
+                  ? 'flex justify-center' 
+                  : message.role === 'user' 
+                    ? 'flex flex-col items-end' 
+                    : 'flex flex-col items-start'
+              }`}
+              ref={index === messages.length - 1 ? messagesEndRef : null}
+            >
+              {isSystemMessage ? (
+                <div className="flex items-center gap-2 px-6 py-2.5 bg-gray-50 rounded-full 
+                  text-xs font-medium text-gray-500 border border-gray-200">
+                  <span className="w-4 h-4">ℹ</span>
+                  {message.content}
+                </div>
+              ) : (
+                <div className="space-y-1 max-w-[80%]">
+                  <div className={`p-4 rounded-2xl ${
+                    message.role === 'user' 
+                      ? 'bg-blue-500 text-white text-right' 
+                      : 'bg-gray-100 text-gray-800 text-left'
+                  }`}>
+                    <div className="text-sm">
+                      {renderMessageContent(message.content)}
+                    </div>
+                  </div>
+                  <div className={`text-xs ${
+                    message.role === 'user' ? 'text-right' : 'text-left'
+                  } text-gray-500`}>
+                    {message.timestamp}
+                  </div>
+                </div>
+              )}
             </div>
-            <div className={`text-xs mt-1 ${
-              message.role === 'user' ? 'text-right' : 'text-left'
-            } text-gray-500`}>
-              {message.timestamp}
-            </div>
-          </div>
-        ))}
-        <div ref={messagesEndRef} />
+          );
+        })}
         {isLoading && (
-          <div className="flex justify-center my-4">
-            <Spin />
+          <div className="flex justify-center items-center p-4">
+            <Spin size="small" />
           </div>
         )}
       </div>
 
-      <form onSubmit={handleSubmit} className="flex gap-2">
-        <Input
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          placeholder="Type your message..."
-          disabled={isLoading}
-        />
-        <Button
-          type="primary"
-          htmlType="submit"
-          icon={<SendOutlined />}
-          disabled={isLoading || !input.trim()}
-        />
-      </form>
+      {/* Input */}
+      <div className="p-4 border-t border-gray-200">
+        <form onSubmit={handleSubmit} className="flex items-center gap-2">
+          <Input
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            placeholder="Type your question here..."
+            disabled={isLoading}
+            className="flex-grow rounded-full border-gray-200 hover:border-gray-300 focus:border-blue-500"
+          />
+          <Button
+            type="primary"
+            htmlType="submit"
+            icon={<SendOutlined />}
+            disabled={isLoading || !input.trim()}
+            className="rounded-full flex items-center justify-center w-10 h-10 !p-0"
+          />
+        </form>
+      </div>
     </div>
   );
 };
