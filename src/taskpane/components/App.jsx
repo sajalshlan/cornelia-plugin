@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Layout, Button, Space } from 'antd';
 import { 
   FileSearchOutlined, 
@@ -30,6 +30,11 @@ const App = () => {
   // Add chat loading states
   const [chatLoading, setChatLoading] = useState(false);
   const [chatError, setChatError] = useState(null);
+
+  // Add useEffect to load document content and comments on mount
+  useEffect(() => {
+    readDocument();
+  }, []);
 
   const readDocument = async () => {
     try {
@@ -202,45 +207,50 @@ const App = () => {
         );
       default:
         return (
-          <div className="p-4">
-            <Space direction="vertical" size="large" className="w-full">
-              <Button
-                type="primary"
-                icon={<FileSearchOutlined />}
-                onClick={() => {
-                  readDocument();
-                  setActiveView('summary');
-                }}
-                size="large"
-                block
-              >
-                Get Summary
-              </Button>
-              <Button
-                type="primary"
-                icon={<CommentOutlined />}
-                onClick={() => {
-                  readDocument();
-                  setActiveView('comments');
-                }}
-                size="large"
-                block
-              >
-                View Comments
-              </Button>
-              <Button
-                type="primary"
-                icon={<MessageOutlined />}
-                onClick={() => {
-                  readDocument();
-                  setActiveView('chat');
-                }}
-                size="large"
-                block
-              >
-                Ask Cornelia
-              </Button>
-            </Space>
+          <div className="flex flex-col h-full">
+            {/* Top Summary Card - More Compact */}
+            <div className="px-4 py-2">
+              <div className="bg-white rounded-lg shadow-sm p-4 border border-gray-200 hover:border-blue-400 transition-colors">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-base font-medium m-0">Document Summary</h3>
+                  <Button
+                    type="primary"
+                    icon={<FileSearchOutlined />}
+                    onClick={() => setActiveView('summary')}
+                    size="middle"
+                  >
+                    Generate Summary
+                  </Button>
+                </div>
+              </div>
+            </div>
+
+            {/* Middle Comments Section - Larger */}
+            <div className="flex-1 overflow-auto px-4 py-2">
+              <div className="bg-gray-50 rounded-lg p-4 h-full">
+                <h3 className="text-base font-medium mb-3">Document Comments</h3>
+                <div className="comments-scroll-container">
+                  <CommentList comments={comments} />
+                </div>
+              </div>
+            </div>
+
+            {/* Bottom Chat Card - More Compact */}
+            <div className="px-4 py-2">
+              <div className="bg-white rounded-lg shadow-sm p-4 border border-gray-200 hover:border-blue-400 transition-colors">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-base font-medium m-0">Ask Cornelia</h3>
+                  <Button
+                    type="primary"
+                    icon={<MessageOutlined />}
+                    onClick={() => setActiveView('chat')}
+                    size="middle"
+                  >
+                    Start Chat
+                  </Button>
+                </div>
+              </div>
+            </div>
           </div>
         );
     }
@@ -249,7 +259,7 @@ const App = () => {
   return (
     <Layout className="h-screen">
       {renderHeader()}
-      <Content className="flex-1 overflow-auto">
+      <Content className="flex-1 overflow-auto bg-gray-100">
         {renderContent()}
       </Content>
     </Layout>

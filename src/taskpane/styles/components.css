@@ -224,3 +224,34 @@
     background: #f3f4f6;
     color: #1f2937;
   }
+  
+  .comments-scroll-container {
+    max-height: calc(100vh - 200px);
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(0, 0, 0, 0.2) transparent;
+    padding: 1px;
+  }
+  
+  .comments-scroll-container::-webkit-scrollbar {
+    width: 4px;
+  }
+  
+  .comments-scroll-container::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  
+  .comments-scroll-container::-webkit-scrollbar-thumb {
+    background-color: rgba(0, 0, 0, 0.2);
+    border-radius: 2px;
+  }
+  
+  /* Card hover effects */
+  .bg-white.rounded-lg {
+    transition: all 0.2s ease-in-out;
+  }
+  
+  .bg-white.rounded-lg:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  }
