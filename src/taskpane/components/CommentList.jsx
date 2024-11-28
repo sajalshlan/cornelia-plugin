@@ -1,18 +1,26 @@
-import React from 'react';
-import { List, Card, Typography, Badge, Button, Tooltip, Collapse } from 'antd';
+import React, { useState, useEffect } from 'react';
+import { List, Card, Typography, Badge, Button, Tooltip, Collapse, message } from 'antd';
 import { 
   UserOutlined, 
   ClockCircleOutlined,
   CheckCircleOutlined,
-  ArrowRightOutlined,
-  CommentOutlined
+  UndoOutlined,
+  CaretRightOutlined
 } from '@ant-design/icons';
 import CommentActions from './CommentActions';
 
 const { Text } = Typography;
 const { Panel } = Collapse;
 
-const CommentList = ({ comments }) => {
+const CommentList = ({ comments, setComments, initialResolvedComments = [] }) => {
+  const [resolvedComments, setResolvedComments] = useState([]);
+
+  useEffect(() => {
+    if (initialResolvedComments && initialResolvedComments.length > 0) {
+      setResolvedComments(initialResolvedComments);
+    }
+  }, [initialResolvedComments]);
+
   const navigateToComment = async (commentId) => {
     try {
       await Word.run(async (context) => {
@@ -49,6 +57,68 @@ const CommentList = ({ comments }) => {
     }
   };
 
+  const handleResolveComment = async (commentId) => {
+    try {
+      await Word.run(async (context) => {
+        const docComments = context.document.body.getComments();
+        docComments.load("items");
+        await context.sync();
+
+        const comment = docComments.items.find(c => c.id === commentId);
+        
+        if (comment) {
+          comment.resolved = true;
+          await context.sync();
+
+          // Move comment to resolved list instead of removing
+          setComments(prevComments => {
+            const commentToMove = prevComments.find(c => c.id === commentId);
+            setResolvedComments(prev => [...prev, { ...commentToMove, resolved: true }]);
+            return prevComments.filter(c => c.id !== commentId);
+          });
+          
+          message.success('Comment resolved successfully');
+        } else {
+          message.error('Comment not found');
+        }
+      });
+    } catch (error) {
+      console.error('Failed to resolve comment:', error);
+      message.error('Failed to resolve comment');
+    }
+  };
+
+  const handleUnresolveComment = async (commentId) => {
+    try {
+      await Word.run(async (context) => {
+        const docComments = context.document.body.getComments();
+        docComments.load("items");
+        await context.sync();
+
+        const comment = docComments.items.find(c => c.id === commentId);
+        
+        if (comment) {
+          comment.resolved = false;
+          await context.sync();
+
+          // Move comment back to active list
+          setResolvedComments(prevResolved => {
+            const commentToMove = prevResolved.find(c => c.id === commentId);
+            setComments(prev => [...prev, { ...commentToMove, resolved: false }]);
+            return prevResolved.filter(c => c.id !== commentId);
+          });
+          
+          message.success('Comment unresolved successfully');
+        } else {
+          message.error('Comment not found');
+        }
+      });
+    } catch (error) {
+      console.error('Failed to unresolve comment:', error);
+      message.error('Failed to unresolve comment');
+    }
+  };
+
   const renderReplyList = (replies) => {
     if (!replies || replies.length === 0) return null;
 
@@ -74,59 +144,82 @@ const CommentList = ({ comments }) => {
     );
   };
 
+  const renderCommentCard = (comment, isResolved = false) => (
+    <Card className={`comment-card ${isResolved ? 'resolved' : ''}`}>
+      <div className="comment-header">
+        <div className="comment-author">
+          <div className="comment-author-avatar">
+            <UserOutlined className="text-white" />
+          </div>
+          <div className="comment-author-info">
+            <Text strong className="text-sm author-name">{comment.author}</Text>
+            <Text type="secondary" className="text-xs date">
+              <ClockCircleOutlined className="mr-1" />
+              {new Date(comment.date).toLocaleString()}
+            </Text>
+          </div>
+        </div>
+        <div className="comment-controls">
+          <Tooltip title={isResolved ? "Unresolve Comment" : "Mark as Resolved"}>
+            <Button
+              type="text"
+              size="small"
+              icon={isResolved ? <UndoOutlined /> : <CheckCircleOutlined />}
+              className={`resolve-btn ${isResolved ? 'text-green-600' : ''}`}
+              onClick={() => isResolved ? handleUnresolveComment(comment.id) : handleResolveComment(comment.id)}
+            />
+          </Tooltip>
+        </div>
+      </div>
+
+      <div 
+        className="comment-content-wrapper cursor-pointer hover:bg-gray-50"
+        onClick={() => navigateToComment(comment.id)}
+      >
+        <Text className="comment-text">{comment.content}</Text>
+      </div>
+
+      {renderReplyList(comment.replies)}
+      {!isResolved && <CommentActions comment={comment} />}
+    </Card>
+  );
+
   return (
-    <List
-      className="comment-list"
-      itemLayout="vertical"
-      dataSource={comments}
-      renderItem={comment => (
-        <Card className={`comment-card ${comment.resolved ? 'resolved' : ''}`}>
-          <div className="comment-header">
-            <div className="comment-author">
-              <div className="comment-author-avatar">
-                <UserOutlined className="text-white" />
-              </div>
-              <div className="comment-author-info">
-                <Text strong className="text-sm author-name">{comment.author}</Text>
-                <Text type="secondary" className="text-xs date">
-                  <ClockCircleOutlined className="mr-1" />
-                  {new Date(comment.date).toLocaleString()}
-                </Text>
-              </div>
-            </div>
-            <div className="comment-controls">
-              {!comment.resolved && (
-                <Tooltip title="Mark as Resolved">
-                  <Button
-                    type="text"
-                    size="small"
-                    icon={<CheckCircleOutlined />}
-                    className="resolve-btn"
-                    onClick={() => message.success('Comment marked as resolved')}
-                  />
-                </Tooltip>
-              )}
-              <Tooltip title="Go to Comment">
-                <Button
-                  type="default"
-                  size="small"
-                  icon={<ArrowRightOutlined />}
-                  onClick={() => navigateToComment(comment.id)}
-                  className="go-to-comment-btn"
-                />
-              </Tooltip>
-            </div>
-          </div>
-
-          <div className="comment-content-wrapper">
-            <Text className="comment-text">{comment.content}</Text>
-          </div>
-
-          {renderReplyList(comment.replies)}
-          <CommentActions comment={comment} />
-        </Card>
+    <div className="comments-container">
+      {/* Resolved Comments Collapse Section */}
+      {resolvedComments.length > 0 && (
+        <Collapse 
+          className="mb-4"
+          expandIcon={({ isActive }) => (
+            <CaretRightOutlined rotate={isActive ? 90 : 0} />
+          )}
+        >
+          <Panel 
+            header={
+              <span className="text-green-600 font-medium">
+                Resolved Comments ({resolvedComments.length})
+              </span>
+            } 
+            key="resolved"
+          >
+            <List
+              className="resolved-comment-list"
+              itemLayout="vertical"
+              dataSource={resolvedComments}
+              renderItem={comment => renderCommentCard(comment, true)}
+            />
+          </Panel>
+        </Collapse>
       )}
-    />
+
+      {/* Active Comments */}
+      <List
+        className="comment-list"
+        itemLayout="vertical"
+        dataSource={comments}
+        renderItem={comment => renderCommentCard(comment, false)}
+      />
+    </div>
   );
 };
 

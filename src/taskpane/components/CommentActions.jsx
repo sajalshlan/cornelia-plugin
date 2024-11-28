@@ -9,11 +9,15 @@ import {
 
 const { TextArea } = Input;
 
-const CommentActions = ({ comment }) => {
+const CommentActions = ({ comment, onCommentResolved }) => {
   const [isRedraftModalVisible, setIsRedraftModalVisible] = useState(false);
+  const [isReplyModalVisible, setIsReplyModalVisible] = useState(false);
   const [redraftContent, setRedraftContent] = useState('');
+  const [replyContent, setReplyContent] = useState('');
 
   const handleRedraft = async () => {
+    if (!redraftContent.trim()) return;
+    
     try {
       // Implement redraft logic here
       message.success('Comment redrafted successfully');
@@ -21,6 +25,28 @@ const CommentActions = ({ comment }) => {
       setRedraftContent('');
     } catch (error) {
       message.error('Failed to redraft comment');
+    }
+  };
+
+  const handleReply = async () => {
+    try {
+      // Implement reply logic here
+      message.success('Reply added successfully');
+      setIsReplyModalVisible(false);
+      setReplyContent('');
+    } catch (error) {
+      message.error('Failed to add reply');
+    }
+  };
+
+  const handleKeyPress = (e, action) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      if (action === 'redraft' && redraftContent.trim()) {
+        handleRedraft();
+      } else if (action === 'reply' && replyContent.trim()) {
+        handleReply();
+      }
     }
   };
 
@@ -36,12 +62,13 @@ const CommentActions = ({ comment }) => {
         </Button>
         <Button
           icon={<MessageOutlined />}
-          onClick={() => message.info('Reply feature coming soon')}
+          onClick={() => setIsReplyModalVisible(true)}
         >
           Reply
         </Button>
       </div>
 
+      {/* Redraft Modal */}
       <Modal
         title={
           <div className="modal-title">
@@ -71,8 +98,47 @@ const CommentActions = ({ comment }) => {
           rows={5}
           value={redraftContent}
           onChange={e => setRedraftContent(e.target.value)}
+          onKeyPress={e => handleKeyPress(e, 'redraft')}
           placeholder="Instruct the redraft if needed..."
           className="redraft-textarea"
+          autoFocus
+        />
+      </Modal>
+
+      {/* Reply Modal */}
+      <Modal
+        title={
+          <div className="modal-title">
+            <MessageOutlined className="modal-icon" />
+            <span>Add Reply</span>
+          </div>
+        }
+        open={isReplyModalVisible}
+        onCancel={() => {
+          setIsReplyModalVisible(false);
+          setReplyContent('');
+        }}
+        footer={
+          <Button 
+            type="primary"
+            icon={<CheckCircleOutlined />}
+            onClick={handleReply}
+            disabled={!replyContent.trim()}
+          >
+            Reply
+          </Button>
+        }
+        width={360}
+        className="reply-modal"
+        closeIcon={null}
+      >
+        <TextArea
+          rows={5}
+          value={replyContent}
+          onChange={e => setReplyContent(e.target.value)}
+          onKeyPress={e => handleKeyPress(e, 'reply')}
+          placeholder="Write your reply..."
+          className="reply-textarea"
           autoFocus
         />
       </Modal>

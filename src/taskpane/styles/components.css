@@ -513,3 +513,43 @@
     padding: 8px 8px;
     height: 30px;
   }
+  
+  .comment-content-wrapper {
+    padding: 8px;
+    border-radius: 4px;
+    transition: background-color 0.2s;
+  }
+  
+  .comment-content-wrapper:hover {
+    background-color: rgba(0, 0, 0, 0.03);
+  }
+  
+  .cursor-pointer {
+    cursor: pointer;
+  }
+  
+  .resolved-comment-list .comment-card {
+    opacity: 0.8;
+    background-color: #f8f8f8;
+  }
+  
+  .comment-controls .resolve-btn.text-green-600 {
+    color: #16a34a;
+  }
+  
+  .comment-controls .resolve-btn.text-green-600:hover {
+    color: #15803d;
+  }
+  
+  .ant-collapse {
+    background-color: white;
+    border-radius: 8px;
+  }
+  
+  .ant-collapse-header {
+    padding: 12px 16px !important;
+  }
+  
+  .ant-collapse-content-box {
+    padding: 0 16px 16px !important;
+  }

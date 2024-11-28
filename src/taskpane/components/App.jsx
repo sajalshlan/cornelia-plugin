@@ -21,6 +21,7 @@ const App = () => {
   const [summary, setSummary] = useState('');
   const [chatMessages, setChatMessages] = useState([]);
   const [comments, setComments] = useState([]);
+  const [initialResolvedComments, setInitialResolvedComments] = useState([]);
   
   // Add loading states
   const [summaryLoading, setSummaryLoading] = useState(false);
@@ -52,9 +53,9 @@ const App = () => {
         
         setDocumentContent(body.text);
         
-        // Load all properties for comments including replies
+        // Load all properties for comments including replies and resolved status
         docComments.items.forEach(comment => {
-          comment.load(["id", "authorName", "text", "created", "replies"]);
+          comment.load(["id", "authorName", "text", "created", "replies", "resolved"]);
         });
         await context.sync();
 
@@ -67,11 +68,6 @@ const App = () => {
             date: reply.created ? new Date(reply.created).toISOString() : new Date().toISOString(),
           })) : [];
 
-          // logger.info('Processing comment with replies:', {
-          //   commentId: comment.id,
-          //   replyCount: replies.length
-          // });
-
           return {
             id: comment.id,
             content: comment.content || '',
@@ -82,8 +78,16 @@ const App = () => {
             replies: replies
           };
         });
-        
-        setComments(processedComments);
+
+        // Separate resolved and unresolved comments
+        const unresolvedComments = processedComments.filter(comment => !comment.resolved);
+        const resolvedComments = processedComments.filter(comment => comment.resolved);
+
+        // Set both states
+        setComments(unresolvedComments);
+        setInitialResolvedComments(resolvedComments);
+
+        await context.sync();
       });
     } catch (error) {
       logger.error("Error reading document:", error);
@@ -225,7 +229,7 @@ const App = () => {
           />
         );
       case 'comments':
-        return <CommentList comments={comments} />;
+        return <CommentList comments={comments} setComments={setComments} initialResolvedComments={initialResolvedComments} />;
       case 'chat':
         return (
           <ChatWindow 
@@ -269,7 +273,7 @@ const App = () => {
               <div className="bg-gray-50 rounded-lg p-4 h-full">
                 <h3 className="text-base font-medium mb-3">Document Comments</h3>
                 <div className="comments-scroll-container">
-                  <CommentList comments={comments} />
+                  <CommentList comments={comments} setComments={setComments} initialResolvedComments={initialResolvedComments} />
                 </div>
               </div>
             </div>
