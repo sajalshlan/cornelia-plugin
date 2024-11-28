@@ -96,6 +96,7 @@ if (createDebugger.enable) {
 // Create axios instance
 const api = axios.create({
   baseURL: BASE_URL,
+  timeout: 180000,
   headers: {
     'Content-Type': 'application/json',
     'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzMyNzk2NzA0LCJpYXQiOjE3MzI3OTMxMDQsImp0aSI6ImQ3ZmQzNTk3YWNhNDQ0MjlhMzlhYjY3N2ViYzE4YWQ5IiwidXNlcl9pZCI6M30.86Fpg6WAPtaNg08XHjn1lMU4mhrkCgnlAVOK55hoh7E'

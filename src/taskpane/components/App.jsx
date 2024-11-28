@@ -31,6 +31,10 @@ const App = () => {
   const [chatLoading, setChatLoading] = useState(false);
   const [chatError, setChatError] = useState(null);
 
+  // Add home summary loading states
+  const [homeSummaryLoading, setHomeSummaryLoading] = useState(false);
+  const [homeSummaryReady, setHomeSummaryReady] = useState(false);
+
   // Add useEffect to load document content and comments on mount
   useEffect(() => {
     readDocument();
@@ -159,6 +163,34 @@ const App = () => {
     }
   };
 
+  const handleHomeSummaryClick = async () => {
+    if (homeSummaryReady) {
+      setActiveView('summary');
+      return;
+    }
+
+    setHomeSummaryLoading(true);
+    try {
+      const result = await performAnalysis(
+        'shortSummary', 
+        documentContent, 
+        'document',
+        (fileName, percent) => {
+          setSummaryProgress(percent);
+        }
+      );
+      
+      if (result) {
+        setSummary(result);
+        setHomeSummaryReady(true);
+      }
+    } catch (error) {
+      setSummaryError(error.message || 'Analysis failed');
+    } finally {
+      setHomeSummaryLoading(false);
+    }
+  };
+
   const renderHeader = () => {
     if (activeView) {
       return (
@@ -214,12 +246,19 @@ const App = () => {
                 <div className="flex items-center justify-between">
                   <h3 className="text-base font-medium m-0">Document Summary</h3>
                   <Button
-                    type="primary"
+                    type={homeSummaryReady ? "default" : "primary"}
+                    className={homeSummaryReady ? "bg-green-600 hover:bg-green-700 text-white border-green-600" : ""}
                     icon={<FileSearchOutlined />}
-                    onClick={() => setActiveView('summary')}
+                    onClick={handleHomeSummaryClick}
+                    loading={homeSummaryLoading}
                     size="middle"
                   >
-                    Generate Summary
+                    {homeSummaryLoading 
+                      ? `Generating Summary ${summaryProgress > 0 ? `(${summaryProgress}%)` : ''}` 
+                      : homeSummaryReady 
+                        ? 'Summary Ready →' 
+                        : 'Generate Summary'
+                    }
                   </Button>
                 </div>
               </div>

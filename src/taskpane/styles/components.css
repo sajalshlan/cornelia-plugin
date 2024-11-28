@@ -8,7 +8,8 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    min-height: 200px;
+    min-height: 300px;
+    text-align: center;
   }
   
   .comment-card {
@@ -254,4 +255,31 @@
   .bg-white.rounded-lg:hover {
     transform: translateY(-1px);
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  }
+  
+  .bg-green-500 {
+    background-color: #10b981 !important;
+  }
+  
+  .hover\:bg-green-600:hover {
+    background-color: #059669 !important;
+  }
+  
+  .border-green-500 {
+    border-color: #10b981 !important;
+  }
+  
+  .text-white {
+    color: white !important;
+  }
+  
+  .summary-card {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    transition: all 0.2s ease;
+  }
+  
+  .summary-card:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
   }
