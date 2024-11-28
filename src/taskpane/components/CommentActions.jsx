@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import { Button, Space, Modal, Input, message } from 'antd';
+import { Button, Modal, Input, message } from 'antd';
 import {
   EditOutlined,
-  SearchOutlined,
-  CheckCircleOutlined,
-  MessageOutlined
+  MessageOutlined,
+  CloseCircleOutlined,
+  CheckCircleOutlined
 } from '@ant-design/icons';
 
 const { TextArea } = Input;
@@ -18,6 +18,7 @@ const CommentActions = ({ comment }) => {
       // Implement redraft logic here
       message.success('Comment redrafted successfully');
       setIsRedraftModalVisible(false);
+      setRedraftContent('');
     } catch (error) {
       message.error('Failed to redraft comment');
     }
@@ -42,16 +43,37 @@ const CommentActions = ({ comment }) => {
       </div>
 
       <Modal
-        title="Redraft Comment"
+        title={
+          <div className="modal-title">
+            <EditOutlined className="modal-icon" />
+            <span>Redraft Comment</span>
+          </div>
+        }
         open={isRedraftModalVisible}
-        onOk={handleRedraft}
-        onCancel={() => setIsRedraftModalVisible(false)}
+        onCancel={() => {
+          setIsRedraftModalVisible(false);
+          setRedraftContent('');
+        }}
+        footer={
+          <Button 
+            type="primary"
+            icon={<CheckCircleOutlined />}
+            onClick={handleRedraft}
+          >
+            Redraft
+          </Button>
+        }
+        width={360}
+        className="redraft-modal"
+        closeIcon={null}
       >
         <TextArea
-          rows={4}
+          rows={5}
           value={redraftContent}
           onChange={e => setRedraftContent(e.target.value)}
-          placeholder="Enter new comment content..."
+          placeholder="Instruct the redraft if needed..."
+          className="redraft-textarea"
+          autoFocus
         />
       </Modal>
     </>

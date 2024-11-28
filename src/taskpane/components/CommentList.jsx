@@ -53,37 +53,24 @@ const CommentList = ({ comments }) => {
     if (!replies || replies.length === 0) return null;
 
     return (
-      <Collapse 
-        ghost 
-        className="replies-collapse"
-      >
-        <Panel 
-          header={
-            <Text type="secondary">
-              <CommentOutlined className="mr-1" />
-              {replies.length} {replies.length === 1 ? 'reply' : 'replies'}
-            </Text>
-          } 
-          key="1"
-        >
-          {replies.map(reply => (
-            <div key={reply.id} className="reply-item">
-              <div className="reply-header">
-                <div className="reply-author">
-                  <UserOutlined className="mr-2" />
-                  <Text strong>{reply.author}</Text>
-                </div>
-                <Text type="secondary" className="text-xs">
+      <div className="replies-thread">
+        {replies.map(reply => (
+          <div key={reply.id} className="reply-bubble">
+            <div className="reply-header">
+              <div className="reply-author">
+                <UserOutlined className="text-gray-500" />
+                <Text strong className="text-sm">{reply.author}</Text>
+                <Text type="secondary" className="text-xs ml-2">
                   {new Date(reply.date).toLocaleString()}
                 </Text>
               </div>
-              <div className="reply-content">
-                {reply.content}
-              </div>
             </div>
-          ))}
-        </Panel>
-      </Collapse>
+            <div className="reply-content">
+              {reply.content}
+            </div>
+          </div>
+        ))}
+      </div>
     );
   };
 

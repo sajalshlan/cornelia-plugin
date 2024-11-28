@@ -430,3 +430,86 @@
     margin-left: 20px;
     padding: 4px 0;
   }
+  
+  .replies-thread {
+    margin: 8px 0 12px 24px;
+    border-left: 2px solid #e6e6e6;
+  }
+  
+  .reply-bubble {
+    margin: 8px 0;
+    padding: 8px 12px 8px 16px;
+    background-color: #f8f9fa;
+    border-radius: 0 8px 8px 0;
+    position: relative;
+  }
+  
+  .reply-bubble:before {
+    content: '';
+    position: absolute;
+    left: -2px;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: #1890ff;
+  }
+  
+  .reply-header {
+    margin-bottom: 4px;
+  }
+  
+  .reply-author {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  
+  .reply-content {
+    color: #4a5568;
+    font-size: 13px;
+    line-height: 1.5;
+    margin-left: 22px;
+  }
+  
+  .redraft-modal .ant-modal-content {
+    border-radius: 8px;
+    padding: 0;
+  }
+  
+  .redraft-modal .ant-modal-header {
+    padding: 12px;
+    border-bottom: 1px solid #f0f0f0;
+    margin: 0;
+  }
+  
+  .modal-title {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: #1890ff;
+    font-size: 14px;
+  }
+  
+  .redraft-modal .ant-modal-body {
+    padding: 12px;
+  }
+  
+  .redraft-textarea {
+    resize: none;
+    font-size: 14px;
+    line-height: 2;
+    border-radius: 6px;
+  }
+  
+  .redraft-modal .ant-modal-footer {
+    padding: 8px 12px;
+    border-top: 1px solid #f0f0f0;
+    margin: 0;
+    display: flex;
+    justify-content: flex-end;
+  }
+  
+  .redraft-modal .ant-modal-footer .ant-btn {
+    padding: 8px 8px;
+    height: 30px;
+  }

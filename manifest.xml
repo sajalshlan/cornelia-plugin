@@ -7,9 +7,9 @@
 
     <Id>b4e80739-c3d3-4713-9284-c12d5e927846</Id>
     <Version>1.0.0.0</Version>
-    <ProviderName>Legal Assistant</ProviderName>
+    <ProviderName>Cornelia</ProviderName>
     <DefaultLocale>en-US</DefaultLocale>
-    <DisplayName DefaultValue="Legal Assistant"/>
+    <DisplayName DefaultValue="Cornelia"/>
     <Description DefaultValue="AI-powered legal document analysis"/>
     <IconUrl DefaultValue="https://localhost:3001/assets/icon-32.png"/>
     <HighResolutionIconUrl DefaultValue="https://localhost:3001/assets/icon-64.png"/>
@@ -85,13 +85,13 @@
                 <bt:Url id="GetStarted.LearnMoreUrl" DefaultValue="https://go.microsoft.com/fwlink/?LinkId=276812"/>
             </bt:Urls>
             <bt:ShortStrings>
-                <bt:String id="GetStarted.Title" DefaultValue="Get started with Legal Assistant"/>
-                <bt:String id="CommandsGroup.Label" DefaultValue="Legal Assistant"/>
-                <bt:String id="TaskpaneButton.Label" DefaultValue="Legal Assistant"/>
+                <bt:String id="GetStarted.Title" DefaultValue="Get started with Cornelia"/>
+                <bt:String id="CommandsGroup.Label" DefaultValue="Cornelia"/>
+                <bt:String id="TaskpaneButton.Label" DefaultValue="Cornelia"/>
             </bt:ShortStrings>
             <bt:LongStrings>
-                <bt:String id="GetStarted.Description" DefaultValue="Legal Assistant loaded successfully. Go to the HOME tab and click the 'Legal Assistant' button to get started."/>
-                <bt:String id="TaskpaneButton.Tooltip" DefaultValue="Click to open Legal Assistant"/>
+                <bt:String id="GetStarted.Description" DefaultValue="Cornelia loaded successfully. Go to the HOME tab and click the 'Cornelia' button to get started."/>
+                <bt:String id="TaskpaneButton.Tooltip" DefaultValue="Click to open Cornelia"/>
             </bt:LongStrings>
         </Resources>
     </VersionOverrides>
