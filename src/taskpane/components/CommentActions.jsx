@@ -11,7 +11,6 @@ const { TextArea } = Input;
 
 const CommentActions = ({ comment }) => {
   const [isRedraftModalVisible, setIsRedraftModalVisible] = useState(false);
-  const [isAnalyzeModalVisible, setIsAnalyzeModalVisible] = useState(false);
   const [redraftContent, setRedraftContent] = useState('');
 
   const handleRedraft = async () => {
@@ -24,18 +23,9 @@ const CommentActions = ({ comment }) => {
     }
   };
 
-  const handleAnalyze = async () => {
-    try {
-      // Implement analysis logic here
-      setIsAnalyzeModalVisible(true);
-    } catch (error) {
-      message.error('Failed to analyze comment');
-    }
-  };
-
   return (
     <>
-      <Space className="comment-actions mt-4">
+      <div className="comment-actions-grid">
         <Button
           type="primary"
           icon={<EditOutlined />}
@@ -44,28 +34,12 @@ const CommentActions = ({ comment }) => {
           Redraft
         </Button>
         <Button
-          icon={<SearchOutlined />}
-          onClick={handleAnalyze}
-        >
-          Analyze
-        </Button>
-        <Button
           icon={<MessageOutlined />}
           onClick={() => message.info('Reply feature coming soon')}
         >
           Reply
         </Button>
-        {!comment.resolved && (
-          <Button
-            type="primary"
-            ghost
-            icon={<CheckCircleOutlined />}
-            onClick={() => message.success('Comment marked as resolved')}
-          >
-            Resolve
-          </Button>
-        )}
-      </Space>
+      </div>
 
       <Modal
         title="Redraft Comment"
@@ -79,15 +53,6 @@ const CommentActions = ({ comment }) => {
           onChange={e => setRedraftContent(e.target.value)}
           placeholder="Enter new comment content..."
         />
-      </Modal>
-
-      <Modal
-        title="Analysis Results"
-        open={isAnalyzeModalVisible}
-        onOk={() => setIsAnalyzeModalVisible(false)}
-        onCancel={() => setIsAnalyzeModalVisible(false)}
-      >
-        <p>Analysis results will appear here...</p>
       </Modal>
     </>
   );

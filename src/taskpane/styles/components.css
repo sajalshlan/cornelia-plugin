@@ -13,12 +13,13 @@
   }
   
   .comment-card {
-    border-radius: 12px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-    transition: all 0.2s ease;
-    border: 1px solid #f0f0f0;
-    cursor: pointer;
+    margin-bottom: 12px !important;
+    border-radius: 8px !important;
+    border: 1px solid #e6e6e6 !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05) !important;
+    transition: all 0.2s ease !important;
     background: white;
+    min-width: 200px;
   }
   
   .comment-card:hover {
@@ -282,4 +283,150 @@
   
   .summary-card:hover {
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+  }
+  
+  .comment-header {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 12px;
+  }
+  
+  .comment-author {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 150px;
+    flex: 1;
+  }
+  
+  .comment-author-info {
+    min-width: 0;
+    flex: 1;
+  }
+  
+  .author-name {
+    display: block;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  
+  .date {
+    display: block;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  
+  .comment-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  
+  .resolved-badge {
+    white-space: nowrap;
+  }
+  
+  .go-to-comment-btn {
+    white-space: nowrap;
+    min-width: auto;
+  }
+  
+  @media (max-width: 300px) {
+    .btn-text {
+      display: none;
+    }
+    
+    .comment-controls {
+      width: 100%;
+      justify-content: flex-end;
+    }
+    
+    .comment-content-wrapper {
+      margin: 8px 0;
+      padding: 8px;
+    }
+  }
+  
+  /* Keep existing styles but remove any fixed widths */
+  .comment-content-wrapper {
+    background-color: #f8f9fa;
+    border-radius: 6px;
+    padding: 12px;
+    margin: 12px 0;
+    word-break: break-word;
+  }
+  
+  .comment-actions-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 8px;
+    padding-top: 12px;
+    margin-top: 12px;
+    border-top: 1px solid #f0f0f0;
+  }
+  
+  .comment-actions-grid .ant-btn {
+    width: 100%;
+    min-height: 32px;
+  }
+  
+  @media (max-width: 320px) {
+    .comment-actions-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .comment-actions-grid .ant-btn {
+      padding: 4px 8px;
+      font-size: 12px;
+    }
+    
+    .comment-actions-grid .ant-btn .anticon {
+      font-size: 12px;
+    }
+  }
+  
+  .replies-collapse {
+    margin: 8px 0;
+  }
+  
+  .replies-collapse .ant-collapse-header {
+    padding: 4px 0 !important;
+    color: #666 !important;
+  }
+  
+  .replies-collapse .ant-collapse-content-box {
+    padding: 0 !important;
+  }
+  
+  .reply-item {
+    padding: 8px 12px;
+    margin: 4px 0;
+    background-color: #fafafa;
+    border-radius: 4px;
+  }
+  
+  .reply-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 4px;
+  }
+  
+  .reply-author {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  
+  .reply-content {
+    color: #666;
+    font-size: 13px;
+    margin-left: 20px;
+    padding: 4px 0;
   }

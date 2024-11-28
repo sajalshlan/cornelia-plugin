@@ -1,9 +1,16 @@
 import React from 'react';
-import { List, Card, Typography, Badge } from 'antd';
-import { UserOutlined, ClockCircleOutlined } from '@ant-design/icons';
-import { logger } from '../../api';
+import { List, Card, Typography, Badge, Button, Tooltip, Collapse } from 'antd';
+import { 
+  UserOutlined, 
+  ClockCircleOutlined,
+  CheckCircleOutlined,
+  ArrowRightOutlined,
+  CommentOutlined
+} from '@ant-design/icons';
+import CommentActions from './CommentActions';
 
-const { Text, Title } = Typography;
+const { Text } = Typography;
+const { Panel } = Collapse;
 
 const CommentList = ({ comments }) => {
   const navigateToComment = async (commentId) => {
@@ -42,76 +49,97 @@ const CommentList = ({ comments }) => {
     }
   };
 
-  const renderReplies = (replies) => {
+  const renderReplyList = (replies) => {
     if (!replies || replies.length === 0) return null;
 
     return (
-      <div className="mt-4 space-y-3">
-        <Text type="secondary" className="text-sm font-medium">
-          Replies ({replies.length})
-        </Text>
-        <div className="space-y-3 pl-4 border-l-2 border-blue-100">
-          {replies.map((reply, index) => (
-            <div key={reply.id || index} className="bg-gray-50 rounded-lg p-3">
-              <div className="flex items-center gap-2 mb-2">
-                <UserOutlined className="text-gray-400" />
-                <Text strong className="text-sm">{reply.author}</Text>
+      <Collapse 
+        ghost 
+        className="replies-collapse"
+      >
+        <Panel 
+          header={
+            <Text type="secondary">
+              <CommentOutlined className="mr-1" />
+              {replies.length} {replies.length === 1 ? 'reply' : 'replies'}
+            </Text>
+          } 
+          key="1"
+        >
+          {replies.map(reply => (
+            <div key={reply.id} className="reply-item">
+              <div className="reply-header">
+                <div className="reply-author">
+                  <UserOutlined className="mr-2" />
+                  <Text strong>{reply.author}</Text>
+                </div>
                 <Text type="secondary" className="text-xs">
-                  <ClockCircleOutlined className="mr-1" />
                   {new Date(reply.date).toLocaleString()}
                 </Text>
               </div>
-              <Text className="text-sm text-gray-700">{reply.content}</Text>
+              <div className="reply-content">
+                {reply.content}
+              </div>
             </div>
           ))}
-        </div>
-      </div>
+        </Panel>
+      </Collapse>
     );
   };
 
-  if (!comments.length) {
-    return (
-      <div className="flex items-center justify-center h-full">
-        <div className="text-center p-8 bg-white rounded-lg shadow-sm">
-          <Title level={4} className="text-gray-400">No Comments Found</Title>
-          <Text type="secondary">This document has no comments yet.</Text>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="p-4 max-w-3xl mx-auto">
-      <List
-        className="comment-list space-y-4"
-        itemLayout="vertical"
-        dataSource={comments}
-        renderItem={comment => (
-          <Card 
-            className="comment-card hover:shadow-md transition-shadow duration-200"
-            onClick={() => navigateToComment(comment.id)}
-          >
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <UserOutlined className="text-blue-500" />
-                <Text strong>{comment.author}</Text>
-                {comment.resolved && (
-                  <Badge status="success" text="Resolved" />
-                )}
+    <List
+      className="comment-list"
+      itemLayout="vertical"
+      dataSource={comments}
+      renderItem={comment => (
+        <Card className={`comment-card ${comment.resolved ? 'resolved' : ''}`}>
+          <div className="comment-header">
+            <div className="comment-author">
+              <div className="comment-author-avatar">
+                <UserOutlined className="text-white" />
               </div>
-              <Text type="secondary" className="text-xs">
-                <ClockCircleOutlined className="mr-1" />
-                {new Date(comment.date).toLocaleString()}
-              </Text>
+              <div className="comment-author-info">
+                <Text strong className="text-sm author-name">{comment.author}</Text>
+                <Text type="secondary" className="text-xs date">
+                  <ClockCircleOutlined className="mr-1" />
+                  {new Date(comment.date).toLocaleString()}
+                </Text>
+              </div>
             </div>
-            <div className="comment-content mb-4 text-gray-700">
-              {comment.content}
+            <div className="comment-controls">
+              {!comment.resolved && (
+                <Tooltip title="Mark as Resolved">
+                  <Button
+                    type="text"
+                    size="small"
+                    icon={<CheckCircleOutlined />}
+                    className="resolve-btn"
+                    onClick={() => message.success('Comment marked as resolved')}
+                  />
+                </Tooltip>
+              )}
+              <Tooltip title="Go to Comment">
+                <Button
+                  type="default"
+                  size="small"
+                  icon={<ArrowRightOutlined />}
+                  onClick={() => navigateToComment(comment.id)}
+                  className="go-to-comment-btn"
+                />
+              </Tooltip>
             </div>
-            {renderReplies(comment.replies)}
-          </Card>
-        )}
-      />
-    </div>
+          </div>
+
+          <div className="comment-content-wrapper">
+            <Text className="comment-text">{comment.content}</Text>
+          </div>
+
+          {renderReplyList(comment.replies)}
+          <CommentActions comment={comment} />
+        </Card>
+      )}
+    />
   );
 };
 
