@@ -98,7 +98,7 @@ const api = axios.create({
   baseURL: BASE_URL,
   headers: {
     'Content-Type': 'application/json',
-    'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzMyNzQwMzAyLCJpYXQiOjE3MzI3MzY3MDIsImp0aSI6IjgzZWZjMzU3ZjA3OTQwMjc5YWU2MTk1Y2RiMmI2NDVhIiwidXNlcl9pZCI6M30.zH5bs9oYDeZCytxPQUNOplQsmmAKG_PBKvkrGh_rwIo'
+    'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzMyNzkyNjQ0LCJpYXQiOjE3MzI3ODkwNDQsImp0aSI6ImQwZTVkMWQzZTc0NDRjYzA5NjA4ODg3NTI5NzMwYjdhIiwidXNlcl9pZCI6M30._LhtSpaDpiFpNTT81ZdoQNcOma3qvLYHkmubqu2oYT8'
   },
 });
 

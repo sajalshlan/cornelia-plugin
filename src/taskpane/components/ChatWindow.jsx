@@ -1,19 +1,21 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Button, Input, Spin, Typography } from 'antd';
 import { SendOutlined, CloseOutlined } from '@ant-design/icons';
-import { performAnalysis } from '../../api';
 
-const { Title } = Typography;
-
-const ChatWindow = ({ documentContent, onClose }) => {
-  const [messages, setMessages] = useState([]);
+const ChatWindow = ({ 
+  documentContent, 
+  messages, 
+  setMessages, 
+  isLoading,
+  error,
+  onSubmit 
+}) => {
   const [input, setInput] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef(null);
   const chatContainerRef = useRef(null);
 
   useEffect(() => {
-    // Add initial welcome message
+    // Add initial welcome message only if messages array is empty
     if (messages.length === 0) {
       setMessages([{
         role: 'assistant',
@@ -35,41 +37,9 @@ const ChatWindow = ({ documentContent, onClose }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!input.trim() || isLoading) return;
-
-    const newMessage = {
-      role: 'user',
-      content: input.trim(),
-      timestamp: new Date().toLocaleTimeString()
-    };
-
-    setMessages(prev => [...prev, newMessage]);
+    
+    await onSubmit(input);
     setInput('');
-    setIsLoading(true);
-
-    try {
-      const result = await performAnalysis('ask', 
-        `Document Content:\n${documentContent}\n\nQuestion: ${input}`, 
-        'document'
-      );
-
-      if (result) {
-        setMessages(prev => [...prev, {
-          role: 'assistant',
-          content: result,
-          timestamp: new Date().toLocaleTimeString()
-        }]);
-      }
-    } catch (error) {
-      console.error('Chat error:', error);
-      setMessages(prev => [...prev, {
-        role: 'assistant',
-        content: 'Sorry, I encountered an error. Please try again.',
-        timestamp: new Date().toLocaleTimeString(),
-        isError: true
-      }]);
-    } finally {
-      setIsLoading(false);
-    }
   };
 
   const renderMessageContent = (content) => {
