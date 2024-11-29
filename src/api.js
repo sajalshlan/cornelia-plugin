@@ -99,7 +99,7 @@ const api = axios.create({
   timeout: 180000,
   headers: {
     'Content-Type': 'application/json',
-    'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzMyODA0ODQwLCJpYXQiOjE3MzI4MDEyNDAsImp0aSI6IjMxYWE3NWIxODlmNTRhYjliMjIxMGUyMmFlMTI2Mzk5IiwidXNlcl9pZCI6M30.IRkR6k4XSvddSLn-Y2sE6U2uSwdlRvyA4cm44a3wXsA'
+    'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzMyODg0NzM4LCJpYXQiOjE3MzI4ODExMzgsImp0aSI6IjA1MDhmZDk1NzZjMzQwYTJhZTEzZDcwMWYxODY0MmVjIiwidXNlcl9pZCI6M30.9J6UH6LuBebNoxVmHR5be0XTSYkFChkGWnR1Ot-Ls6g'
   },
 });
 
@@ -180,6 +180,22 @@ export const testEndpoint = async () => {
     return response.data;
   } catch (error) {
     logger.error('Test failed: %O', error);
+    throw error;
+  }
+};
+
+export const redraftComment = async (comment, documentContent, instructions = '', replies = []) => {
+  try {
+    const response = await api.post('/redraft_comment/', {
+      comment,
+      documentContent,
+      instructions,
+      replies
+    });
+    
+    return response.data.success ? response.data.result : null;
+  } catch (error) {
+    logger.error('Error in redrafting comment: %O', error);
     throw error;
   }
 };

@@ -4,8 +4,10 @@ import {
   EditOutlined,
   MessageOutlined,
   CloseCircleOutlined,
-  CheckCircleOutlined
+  CheckCircleOutlined,
+  SyncOutlined
 } from '@ant-design/icons';
+import { redraftComment } from '../../api';
 
 const { TextArea } = Input;
 
@@ -14,18 +16,90 @@ const CommentActions = ({ comment, onCommentResolved }) => {
   const [isReplyModalVisible, setIsReplyModalVisible] = useState(false);
   const [redraftContent, setRedraftContent] = useState('');
   const [replyContent, setReplyContent] = useState('');
+  const [isRedrafting, setIsRedrafting] = useState(false);
+  const [redraftResult, setRedraftResult] = useState(null);
 
   const handleRedraft = async () => {
-    if (!redraftContent.trim()) return;
+    if (!comment) return;
     
     try {
-      // Implement redraft logic here
-      message.success('Comment redrafted successfully');
+      setIsRedrafting(true);
       setIsRedraftModalVisible(false);
       setRedraftContent('');
+      
+      const documentContent = await Word.run(async (context) => {
+        const body = context.document.body;
+        body.load("text");
+        await context.sync();
+        return body.text;
+      });
+
+      const result = await redraftComment(
+        comment.content,
+        documentContent,
+        redraftContent.trim(),
+        comment.replies || []
+      );
+
+      if (result) {
+        setRedraftResult(result);
+      }
     } catch (error) {
-      message.error('Failed to redraft comment');
+      message.error('Failed to redraft comment: ' + error.message);
+    } finally {
+      setIsRedrafting(false);
     }
+  };
+
+  const handleAcceptRedraft = async () => {
+    try {
+      await Word.run(async (context) => {
+        // Load the comments collection first
+        const comments = context.document.body.getComments();
+        comments.load("items");
+        await context.sync();
+
+        // Find the target comment
+        const targetComment = comments.items.find(c => c.id === comment.id);
+        if (!targetComment) {
+          throw new Error('Comment not found');
+        }
+
+        // Load the replies collection
+        targetComment.replies.load();
+        await context.sync();
+
+        // Create a new reply
+        const newReply = targetComment.reply(redraftResult);
+        await context.sync();
+
+        // Update the UI state
+        const replyObject = {
+          id: newReply.id,
+          content: redraftResult,
+          author: 'Cornelia AI',
+          date: new Date().toISOString()
+        };
+
+        // Update the parent comment's state with the new reply
+        comment.replies = [...(comment.replies || []), replyObject];
+        
+        message.success('Reply added successfully');
+        setRedraftResult(null);
+      });
+    } catch (error) {
+      console.error('Error adding reply:', error);
+      message.error('Failed to add reply: ' + error.message);
+    }
+  };
+
+  const handleRejectRedraft = () => {
+    setRedraftResult(null);
+  };
+
+  const handleRegenerateRedraft = () => {
+    setRedraftResult(null);
+    setIsRedraftModalVisible(true);
   };
 
   const handleReply = async () => {
@@ -57,6 +131,7 @@ const CommentActions = ({ comment, onCommentResolved }) => {
           type="primary"
           icon={<EditOutlined />}
           onClick={() => setIsRedraftModalVisible(true)}
+          loading={isRedrafting}
         >
           Redraft
         </Button>
@@ -67,6 +142,31 @@ const CommentActions = ({ comment, onCommentResolved }) => {
           Reply
         </Button>
       </div>
+
+      {/* Redraft Result Card */}
+      {redraftResult && (
+        <div className="redraft-result-card mt-4 p-4 bg-white rounded-lg shadow">
+          <div className="text-sm text-gray-600 mb-2">Suggested Redraft:</div>
+          <div className="text-base mb-4">{redraftResult}</div>
+          <div className="flex justify-end space-x-2">
+            <Button
+              type="text"
+              icon={<CloseCircleOutlined className="text-red-500" />}
+              onClick={handleRejectRedraft}
+            />
+            <Button
+              type="text"
+              icon={<SyncOutlined className="text-blue-500" />}
+              onClick={handleRegenerateRedraft}
+            />
+            <Button
+              type="text"
+              icon={<CheckCircleOutlined className="text-green-500" />}
+              onClick={handleAcceptRedraft}
+            />
+          </div>
+        </div>
+      )}
 
       {/* Redraft Modal */}
       <Modal

@@ -553,3 +553,21 @@
   .ant-collapse-content-box {
     padding: 0 16px 16px !important;
   }
+  
+  .redraft-result-card {
+    border: 1px solid #e6e6e6;
+    transition: all 0.3s ease;
+  }
+  
+  .redraft-result-card:hover {
+    border-color: #1890ff;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  }
+  
+  .ant-btn-text:hover {
+    background: transparent !important;
+  }
+  
+  .ant-btn-text .anticon {
+    font-size: 20px;
+  }
