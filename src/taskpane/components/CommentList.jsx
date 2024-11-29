@@ -178,7 +178,10 @@ const CommentList = React.memo(({ comments, setComments, initialResolvedComments
       </div>
 
       {renderReplyList(comment.replies)}
-      {!isResolved && <CommentActions comment={comment} />}
+      {!isResolved && <CommentActions 
+        comment={comment} 
+        onCommentUpdate={onCommentUpdate}
+      />}
     </Card>
   );
 

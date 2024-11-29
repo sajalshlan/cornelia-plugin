@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { Button, Modal, Input, message } from 'antd';
+import { Button, Modal, Input, message, Tooltip } from 'antd';
 import {
   EditOutlined,
   MessageOutlined,
@@ -69,10 +69,16 @@ const CommentActions = React.memo(({ comment, onCommentUpdate }) => {
         await context.sync();
 
         const newReply = targetComment.reply(generatedReply);
+        newReply.load(["id", "authorName", "created"]);
+        await context.sync();
+
+        // Set comment as resolved
+        targetComment.resolved = true;
         await context.sync();
 
         const updatedComment = {
           ...comment,
+          resolved: true,
           replies: [...(comment.replies || []), {
             id: newReply.id,
             content: generatedReply,
@@ -83,7 +89,7 @@ const CommentActions = React.memo(({ comment, onCommentUpdate }) => {
         
         onCommentUpdate(updatedComment);
         setGeneratedReply(null);
-        message.success('Reply added successfully');
+        message.success('Reply added and comment resolved');
       });
     } catch (error) {
       console.error('Error adding reply:', error);
@@ -199,6 +205,95 @@ const CommentActions = React.memo(({ comment, onCommentUpdate }) => {
     setIsRedraftModalVisible(true);
   };
 
+  const handleAcceptAndResolve = async () => {
+    try {
+      await Word.run(async (context) => {
+        const comments = context.document.body.getComments();
+        comments.load("items");
+        await context.sync();
+
+        const targetComment = comments.items.find(c => c.id === comment.id);
+        if (!targetComment) {
+          throw new Error('Comment not found');
+        }
+
+        // First redraft the text
+        const contentRange = targetComment.getRange();
+        contentRange.load("text");
+        await context.sync();
+
+        contentRange.insertText(generatedRedraft.text, Word.InsertLocation.replace);
+        
+        // Then resolve the comment
+        targetComment.resolved = true;
+        await context.sync();
+        
+        setGeneratedRedraft(null);
+        message.success('Text redrafted and comment resolved');
+        
+        // Update UI state through CommentList
+        onCommentUpdate({ ...comment, resolved: true });
+      });
+    } catch (error) {
+      console.error('Error in accept and resolve:', error);
+      message.error('Failed to redraft and resolve: ' + error.message);
+    }
+  };
+
+  const handleAcceptAndComment = async () => {
+    try {
+      // First redraft the text
+      await handleAcceptRedraft();
+      // Then open the reply modal and set a flag to resolve after reply
+      setIsAIReplyModalVisible(true);
+    } catch (error) {
+      console.error('Error in accept and comment:', error);
+      message.error('Failed to redraft and open comment: ' + error.message);
+    }
+  };
+
+  const handleDirectReply = async () => {
+    try {
+      await Word.run(async (context) => {
+        const comments = context.document.body.getComments();
+        comments.load("items");
+        await context.sync();
+
+        const targetComment = comments.items.find(c => c.id === comment.id);
+        if (!targetComment) {
+          throw new Error('Comment not found');
+        }
+
+        const newReply = targetComment.reply(aiReplyContent);
+        newReply.load(["id", "authorName", "created"]);
+        await context.sync();
+
+        // Set comment as resolved
+        targetComment.resolved = true;
+        await context.sync();
+
+        const updatedComment = {
+          ...comment,
+          resolved: true,
+          replies: [...(comment.replies || []), {
+            id: newReply.id,
+            content: aiReplyContent,
+            author: newReply.authorName || 'Unknown Author',
+            date: new Date().toISOString()
+          }]
+        };
+        
+        onCommentUpdate(updatedComment);
+        setAIReplyContent('');
+        setIsAIReplyModalVisible(false);
+        message.success('Reply added and comment resolved');
+      });
+    } catch (error) {
+      console.error('Error adding direct reply:', error);
+      message.error('Failed to add reply: ' + error.message);
+    }
+  };
+
   return (
     <>
       <div className="comment-actions-grid">
@@ -225,21 +320,44 @@ const CommentActions = React.memo(({ comment, onCommentUpdate }) => {
           <div className="text-sm text-gray-600 mb-2">AI Generated Redraft:</div>
           <div className="text-base mb-4">{generatedRedraft.text}</div>
           <div className="flex justify-end space-x-2">
-            <Button
-              type="text"
-              icon={<CloseCircleOutlined className="text-red-500" />}
-              onClick={handleRejectRedraft}
-            />
-            <Button
-              type="text"
-              icon={<SyncOutlined className="text-blue-500" />}
-              onClick={handleRegenerateRedraft}
-            />
-            <Button
-              type="text"
-              icon={<CheckCircleOutlined className="text-green-500" />}
-              onClick={handleAcceptRedraft}
-            />
+            <Tooltip title="Reject">
+              <Button
+                type="text"
+                icon={<CloseCircleOutlined className="text-red-500" />}
+                onClick={handleRejectRedraft}
+              />
+            </Tooltip>
+            <Tooltip title="Regenerate">
+              <Button
+                type="text"
+                icon={<SyncOutlined className="text-blue-500" />}
+                onClick={handleRegenerateRedraft}
+              />
+            </Tooltip>
+            <Tooltip title="Accept & Resolve Comment">
+              <Button
+                type="text"
+                icon={
+                  <span className="icon-with-subscript">
+                    <CheckCircleOutlined className="main-icon text-green-500" />
+                    <CheckCircleOutlined className="subscript-icon text-green-500" />
+                  </span>
+                }
+                onClick={handleAcceptAndResolve}
+              />
+            </Tooltip>
+            <Tooltip title="Accept & Add Reply">
+              <Button
+                type="text"
+                icon={
+                  <span className="icon-with-subscript">
+                    <CheckCircleOutlined className="main-icon text-green-500" />
+                    <MessageOutlined className="subscript-icon text-blue-500" />
+                  </span>
+                }
+                onClick={handleAcceptAndComment}
+              />
+            </Tooltip>
           </div>
         </div>
       )}
@@ -283,13 +401,21 @@ const CommentActions = React.memo(({ comment, onCommentUpdate }) => {
           setAIReplyContent('');
         }}
         footer={
-          <Button 
-            type="primary"
-            icon={<CheckCircleOutlined />}
-            onClick={handleAIReply}
-          >
-            Generate Reply
-          </Button>
+          <div className="flex justify-end space-x-2">
+            <Button
+              disabled={!aiReplyContent.trim()}
+              onClick={handleDirectReply}
+            >
+              Reply
+            </Button>
+            <Button 
+              type="primary"
+              icon={<CheckCircleOutlined />}
+              onClick={handleAIReply}
+            >
+              Generate Reply
+            </Button>
+          </div>
         }
         width={360}
         className="ai-reply-modal"
