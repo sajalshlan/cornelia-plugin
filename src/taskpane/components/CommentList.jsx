@@ -70,10 +70,14 @@ const CommentList = React.memo(({ comments, setComments, initialResolvedComments
           comment.resolved = true;
           await context.sync();
 
-          // Move comment to resolved list
+          // Move comment to resolved list while preserving all properties
           setComments(prevComments => {
             const commentToMove = prevComments.find(c => c.id === commentId);
-            setResolvedComments(prev => [...prev, { ...commentToMove, resolved: true }]);
+            setResolvedComments(prev => [...prev, { 
+              ...commentToMove, 
+              resolved: true,
+              content: commentToMove.content // Ensure content is preserved
+            }]);
             return prevComments.filter(c => c.id !== commentId);
           });
           

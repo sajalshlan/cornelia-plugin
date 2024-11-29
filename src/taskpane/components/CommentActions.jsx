@@ -231,8 +231,12 @@ const CommentActions = React.memo(({ comment, onCommentUpdate }) => {
         setGeneratedRedraft(null);
         message.success('Text redrafted and comment resolved');
         
-        // Update UI state through CommentList
-        onCommentUpdate({ ...comment, resolved: true });
+        // Update UI state through CommentList with the new content
+        onCommentUpdate({ 
+          ...comment, 
+          resolved: true,
+          content: generatedRedraft.text // Store the updated content
+        });
       });
     } catch (error) {
       console.error('Error in accept and resolve:', error);

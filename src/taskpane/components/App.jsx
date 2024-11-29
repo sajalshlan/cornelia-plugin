@@ -90,7 +90,7 @@ const App = () => {
     readDocument();
 
     // Set up polling interval (every 5 seconds)
-    const pollInterval = setInterval(readDocument, 5000);
+    const pollInterval = setInterval(readDocument, 3000);
 
     // Cleanup on unmount
     return () => clearInterval(pollInterval);
