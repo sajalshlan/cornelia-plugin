@@ -192,28 +192,34 @@ const CommentList = React.memo(({ comments, setComments, initialResolvedComments
   return (
     <div className="comments-container">
       {resolvedComments.length > 0 && (
-        <Collapse 
-          className="mb-4"
-          expandIcon={({ isActive }) => (
-            <CaretRightOutlined rotate={isActive ? 90 : 0} />
-          )}
-        >
-          <Panel 
-            header={
-              <span className="text-green-600 font-medium">
-                Resolved Comments ({resolvedComments.length})
-              </span>
-            } 
-            key="resolved"
-          >
-            <List
-              className="resolved-comment-list"
-              itemLayout="vertical"
-              dataSource={resolvedComments}
-              renderItem={comment => renderCommentCard(comment, true)}
-            />
-          </Panel>
-        </Collapse>
+        <div className="resolved-comments-section">
+          <div className="sticky-header">
+            <Collapse 
+              className="mb-4"
+              expandIcon={({ isActive }) => (
+                <CaretRightOutlined rotate={isActive ? 90 : 0} />
+              )}
+            >
+              <Panel 
+                header={
+                  <span className="text-green-600 font-medium">
+                    Resolved Comments ({resolvedComments.length})
+                  </span>
+                } 
+                key="resolved"
+              >
+                <div className="resolved-comments-scroll">
+                  <List
+                    className="resolved-comment-list"
+                    itemLayout="vertical"
+                    dataSource={resolvedComments}
+                    renderItem={comment => renderCommentCard(comment, true)}
+                  />
+                </div>
+              </Panel>
+            </Collapse>
+          </div>
+        </div>
       )}
 
       <List

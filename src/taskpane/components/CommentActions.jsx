@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { Button, Modal, Input, message, Tooltip } from 'antd';
 import {
   EditOutlined,
@@ -20,6 +20,29 @@ const CommentActions = React.memo(({ comment, onCommentUpdate }) => {
   const [isGeneratingRedraft, setIsGeneratingRedraft] = useState(false);
   const [generatedReply, setGeneratedReply] = useState(null);
   const [generatedRedraft, setGeneratedRedraft] = useState(null);
+  const replyTextAreaRef = useRef(null);
+  const redraftTextAreaRef = useRef(null);
+
+  // Effect for AI Reply Modal
+  useEffect(() => {
+    if (isAIReplyModalVisible && replyTextAreaRef.current) {
+      // Small delay to ensure modal is fully rendered
+      const timer = setTimeout(() => {
+        replyTextAreaRef.current.focus();
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [isAIReplyModalVisible]);
+
+  // Effect for Redraft Modal
+  useEffect(() => {
+    if (isRedraftModalVisible && redraftTextAreaRef.current) {
+      const timer = setTimeout(() => {
+        redraftTextAreaRef.current.focus();
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [isRedraftModalVisible]);
 
   const handleAIReply = async () => {
     if (!comment) return;
@@ -426,13 +449,13 @@ const CommentActions = React.memo(({ comment, onCommentUpdate }) => {
         closeIcon={null}
       >
         <TextArea
+          ref={replyTextAreaRef}
           rows={5}
           value={aiReplyContent}
           onChange={e => setAIReplyContent(e.target.value)}
           onKeyPress={e => handleKeyPress(e, 'aiReply')}
           placeholder="Give instructions for your reply..."
           className="ai-reply-textarea"
-          autoFocus
         />
       </Modal>
 
@@ -463,13 +486,13 @@ const CommentActions = React.memo(({ comment, onCommentUpdate }) => {
         closeIcon={null}
       >
         <TextArea
+          ref={redraftTextAreaRef}
           rows={5}
           value={redraftContent}
           onChange={e => setRedraftContent(e.target.value)}
           onKeyPress={e => handleKeyPress(e, 'redraft')}
           placeholder="Give instructions for your redraft..."
           className="redraft-textarea"
-          autoFocus
         />
       </Modal>
     </>
