@@ -183,9 +183,9 @@ const CommentActions = React.memo(({ comment, onCommentUpdate }) => {
   const handleKeyPress = (e, action) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      if (action === 'aiReply' && aiReplyContent.trim()) {
+      if (action === 'aiReply') {
         handleAIReply();
-      } else if (action === 'redraft' && redraftContent.trim()) {
+      } else if (action === 'redraft') {
         handleRedraft();
       }
     }
@@ -345,7 +345,18 @@ const CommentActions = React.memo(({ comment, onCommentUpdate }) => {
       {generatedRedraft && (
         <div className="redraft-result-card mt-4 p-4 bg-white rounded-lg shadow">
           <div className="text-sm text-gray-600 mb-2">AI Generated Redraft:</div>
-          <div className="text-base mb-4">{generatedRedraft.text}</div>
+          <TextArea
+            value={generatedRedraft.text}
+            onChange={e => setGeneratedRedraft(prev => ({ ...prev, text: e.target.value }))}
+            onKeyPress={e => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                handleAcceptRedraft();
+              }
+            }}
+            autoSize={{ minRows: 2, maxRows: 6 }}
+            className="mb-4 text-base"
+          />
           <div className="flex justify-end space-x-2">
             <Tooltip title="Reject">
               <Button
@@ -393,7 +404,18 @@ const CommentActions = React.memo(({ comment, onCommentUpdate }) => {
       {generatedReply && (
         <div className="reply-result-card mt-4 p-4 bg-white rounded-lg shadow">
           <div className="text-sm text-gray-600 mb-2">AI Generated Reply:</div>
-          <div className="text-base mb-4">{generatedReply}</div>
+          <TextArea
+            value={generatedReply}
+            onChange={e => setGeneratedReply(e.target.value)}
+            onKeyPress={e => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                handleAcceptGeneratedReply();
+              }
+            }}
+            autoSize={{ minRows: 2, maxRows: 6 }}
+            className="mb-4 text-base"
+          />
           <div className="flex justify-end space-x-2">
             <Button
               type="text"

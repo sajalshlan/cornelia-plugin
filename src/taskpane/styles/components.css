@@ -698,3 +698,24 @@
   .ant-collapse-header {
     background: rgb(243 244 246);
   }
+  
+  .redraft-result-card .ant-input, 
+  .reply-result-card .ant-input {
+    border: 1px solid transparent;
+    background-color: transparent;
+    padding: 4px 8px;
+    transition: all 0.2s;
+  }
+  
+  .redraft-result-card .ant-input:hover,
+  .reply-result-card .ant-input:hover {
+    border-color: #d9d9d9;
+    background-color: #fff;
+  }
+  
+  .redraft-result-card .ant-input:focus,
+  .reply-result-card .ant-input:focus {
+    border-color: #40a9ff;
+    box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
+    background-color: #fff;
+  }
