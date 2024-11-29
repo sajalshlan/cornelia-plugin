@@ -7,7 +7,7 @@ import {
   CheckCircleOutlined,
   SyncOutlined
 } from '@ant-design/icons';
-import { replyToComment } from '../../api';
+import { replyToComment, redraftComment } from '../../api';
 
 const { TextArea } = Input;
 
@@ -17,7 +17,9 @@ const CommentActions = React.memo(({ comment, onCommentUpdate }) => {
   const [redraftContent, setRedraftContent] = useState('');
   const [aiReplyContent, setAIReplyContent] = useState('');
   const [isGeneratingReply, setIsGeneratingReply] = useState(false);
+  const [isGeneratingRedraft, setIsGeneratingRedraft] = useState(false);
   const [generatedReply, setGeneratedReply] = useState(null);
+  const [generatedRedraft, setGeneratedRedraft] = useState(null);
 
   const handleAIReply = async () => {
     if (!comment) return;
@@ -99,13 +101,53 @@ const CommentActions = React.memo(({ comment, onCommentUpdate }) => {
   };
 
   const handleRedraft = async () => {
+    if (!comment) return;
+    
     try {
-      // Implement redraft logic here
-      message.success('Comment redrafted successfully');
+      setIsGeneratingRedraft(true);
       setIsRedraftModalVisible(false);
       setRedraftContent('');
+      
+      await Word.run(async (context) => {
+        const body = context.document.body;
+        body.load("text");
+        
+        const comments = context.document.body.getComments();
+        comments.load("items");
+        await context.sync();
+
+        const targetComment = comments.items.find(c => c.id === comment.id);
+        if (!targetComment) {
+          throw new Error('Comment not found');
+        }
+
+        const contentRange = targetComment.getRange();
+        contentRange.load("text");
+        await context.sync();
+
+        const selectedText = contentRange.text;
+        const documentContent = body.text;
+
+        const result = await redraftComment(
+          comment.content,
+          documentContent,
+          selectedText,
+          redraftContent.trim(),
+          comment.replies || []
+        );
+
+        if (result) {
+          setGeneratedRedraft({
+            text: result,
+            range: contentRange
+          });
+        }
+      });
     } catch (error) {
-      message.error('Failed to redraft comment');
+      console.error('Error redrafting:', error);
+      message.error('Failed to redraft: ' + error.message);
+    } finally {
+      setIsGeneratingRedraft(false);
     }
   };
 
@@ -120,12 +162,50 @@ const CommentActions = React.memo(({ comment, onCommentUpdate }) => {
     }
   };
 
+  const handleAcceptRedraft = async () => {
+    try {
+      await Word.run(async (context) => {
+        const comments = context.document.body.getComments();
+        comments.load("items");
+        await context.sync();
+
+        const targetComment = comments.items.find(c => c.id === comment.id);
+        if (!targetComment) {
+          throw new Error('Comment not found');
+        }
+
+        const contentRange = targetComment.getRange();
+        contentRange.load("text");
+        await context.sync();
+
+        contentRange.insertText(generatedRedraft.text, Word.InsertLocation.replace);
+        await context.sync();
+        
+        setGeneratedRedraft(null);
+        message.success('Text redrafted successfully');
+      });
+    } catch (error) {
+      console.error('Error applying redraft:', error);
+      message.error('Failed to apply redraft: ' + error.message);
+    }
+  };
+
+  const handleRejectRedraft = () => {
+    setGeneratedRedraft(null);
+  };
+
+  const handleRegenerateRedraft = () => {
+    setGeneratedRedraft(null);
+    setIsRedraftModalVisible(true);
+  };
+
   return (
     <>
       <div className="comment-actions-grid">
         <Button
           icon={<EditOutlined />}
           onClick={() => setIsRedraftModalVisible(true)}
+          loading={isGeneratingRedraft}
         >
           Redraft
         </Button>
@@ -138,6 +218,31 @@ const CommentActions = React.memo(({ comment, onCommentUpdate }) => {
           Reply
         </Button>
       </div>
+
+      {/* Generated Redraft Card */}
+      {generatedRedraft && (
+        <div className="redraft-result-card mt-4 p-4 bg-white rounded-lg shadow">
+          <div className="text-sm text-gray-600 mb-2">AI Generated Redraft:</div>
+          <div className="text-base mb-4">{generatedRedraft.text}</div>
+          <div className="flex justify-end space-x-2">
+            <Button
+              type="text"
+              icon={<CloseCircleOutlined className="text-red-500" />}
+              onClick={handleRejectRedraft}
+            />
+            <Button
+              type="text"
+              icon={<SyncOutlined className="text-blue-500" />}
+              onClick={handleRegenerateRedraft}
+            />
+            <Button
+              type="text"
+              icon={<CheckCircleOutlined className="text-green-500" />}
+              onClick={handleAcceptRedraft}
+            />
+          </div>
+        </div>
+      )}
 
       {/* Generated Reply Card */}
       {generatedReply && (

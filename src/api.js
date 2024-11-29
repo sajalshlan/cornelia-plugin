@@ -200,4 +200,21 @@ export const replyToComment = async (comment, documentContent, instructions = ''
   }
 };
 
+export const redraftComment = async (comment, documentContent, selectedText, instructions = '', replies = []) => {
+  try {
+    const response = await api.post('/redraft_comment/', {
+      comment,
+      documentContent,
+      selectedText,
+      instructions,
+      replies
+    });
+    
+    return response.data.success ? response.data.result : null;
+  } catch (error) {
+    logger.error('Error in redrafting comment: %O', error);
+    throw error;
+  }
+};
+
 export default api;
