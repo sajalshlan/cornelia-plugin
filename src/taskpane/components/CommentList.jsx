@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { List, Card, Typography, Badge, Button, Tooltip, Collapse, message } from 'antd';
 import { 
   UserOutlined, 
@@ -12,11 +12,11 @@ import CommentActions from './CommentActions';
 const { Text } = Typography;
 const { Panel } = Collapse;
 
-const CommentList = ({ comments, setComments, initialResolvedComments = [] }) => {
+const CommentList = React.memo(({ comments, setComments, initialResolvedComments = [], onCommentUpdate }) => {
   const [resolvedComments, setResolvedComments] = useState([]);
 
   useEffect(() => {
-    if (initialResolvedComments && initialResolvedComments.length > 0) {
+    if (initialResolvedComments?.length > 0) {
       setResolvedComments(initialResolvedComments);
     }
   }, [initialResolvedComments]);
@@ -57,7 +57,7 @@ const CommentList = ({ comments, setComments, initialResolvedComments = [] }) =>
     }
   };
 
-  const handleResolveComment = async (commentId) => {
+  const handleResolveComment = useCallback(async (commentId) => {
     try {
       await Word.run(async (context) => {
         const docComments = context.document.body.getComments();
@@ -70,7 +70,7 @@ const CommentList = ({ comments, setComments, initialResolvedComments = [] }) =>
           comment.resolved = true;
           await context.sync();
 
-          // Move comment to resolved list instead of removing
+          // Move comment to resolved list
           setComments(prevComments => {
             const commentToMove = prevComments.find(c => c.id === commentId);
             setResolvedComments(prev => [...prev, { ...commentToMove, resolved: true }]);
@@ -78,15 +78,13 @@ const CommentList = ({ comments, setComments, initialResolvedComments = [] }) =>
           });
           
           message.success('Comment resolved successfully');
-        } else {
-          message.error('Comment not found');
         }
       });
     } catch (error) {
       console.error('Failed to resolve comment:', error);
       message.error('Failed to resolve comment');
     }
-  };
+  }, [setComments]);
 
   const handleUnresolveComment = async (commentId) => {
     try {
@@ -186,7 +184,6 @@ const CommentList = ({ comments, setComments, initialResolvedComments = [] }) =>
 
   return (
     <div className="comments-container">
-      {/* Resolved Comments Collapse Section */}
       {resolvedComments.length > 0 && (
         <Collapse 
           className="mb-4"
@@ -212,7 +209,6 @@ const CommentList = ({ comments, setComments, initialResolvedComments = [] }) =>
         </Collapse>
       )}
 
-      {/* Active Comments */}
       <List
         className="comment-list"
         itemLayout="vertical"
@@ -221,6 +217,6 @@ const CommentList = ({ comments, setComments, initialResolvedComments = [] }) =>
       />
     </div>
   );
-};
+});
 
 export default CommentList;

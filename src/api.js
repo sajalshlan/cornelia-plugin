@@ -99,7 +99,7 @@ const api = axios.create({
   timeout: 180000,
   headers: {
     'Content-Type': 'application/json',
-    'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzMyODg0NzM4LCJpYXQiOjE3MzI4ODExMzgsImp0aSI6IjA1MDhmZDk1NzZjMzQwYTJhZTEzZDcwMWYxODY0MmVjIiwidXNlcl9pZCI6M30.9J6UH6LuBebNoxVmHR5be0XTSYkFChkGWnR1Ot-Ls6g'
+    'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzMyODk4NTU0LCJpYXQiOjE3MzI4OTQ5NTQsImp0aSI6IjZlMGJiZDEwMzVmYzQ2Mzg4ZGNiOGYyYTQ0YWNhYTQ3IiwidXNlcl9pZCI6M30.PXmVcpN9ixKDq1-HGqHjgZiWHJzqRffgyVNdIUehyPE'
   },
 });
 
@@ -184,9 +184,9 @@ export const testEndpoint = async () => {
   }
 };
 
-export const redraftComment = async (comment, documentContent, instructions = '', replies = []) => {
+export const replyToComment = async (comment, documentContent, instructions = '', replies = []) => {
   try {
-    const response = await api.post('/redraft_comment/', {
+    const response = await api.post('/reply_to_comment/', {
       comment,
       documentContent,
       instructions,
@@ -195,7 +195,7 @@ export const redraftComment = async (comment, documentContent, instructions = ''
     
     return response.data.success ? response.data.result : null;
   } catch (error) {
-    logger.error('Error in redrafting comment: %O', error);
+    logger.error('Error in replying to comment: %O', error);
     throw error;
   }
 };

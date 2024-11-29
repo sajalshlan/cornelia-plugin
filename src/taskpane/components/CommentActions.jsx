@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { Button, Modal, Input, message } from 'antd';
 import {
   EditOutlined,
@@ -7,25 +7,25 @@ import {
   CheckCircleOutlined,
   SyncOutlined
 } from '@ant-design/icons';
-import { redraftComment } from '../../api';
+import { replyToComment } from '../../api';
 
 const { TextArea } = Input;
 
-const CommentActions = ({ comment, onCommentResolved }) => {
+const CommentActions = React.memo(({ comment, onCommentUpdate }) => {
   const [isRedraftModalVisible, setIsRedraftModalVisible] = useState(false);
-  const [isReplyModalVisible, setIsReplyModalVisible] = useState(false);
+  const [isAIReplyModalVisible, setIsAIReplyModalVisible] = useState(false);
   const [redraftContent, setRedraftContent] = useState('');
-  const [replyContent, setReplyContent] = useState('');
-  const [isRedrafting, setIsRedrafting] = useState(false);
-  const [redraftResult, setRedraftResult] = useState(null);
+  const [aiReplyContent, setAIReplyContent] = useState('');
+  const [isGeneratingReply, setIsGeneratingReply] = useState(false);
+  const [generatedReply, setGeneratedReply] = useState(null);
 
-  const handleRedraft = async () => {
+  const handleAIReply = async () => {
     if (!comment) return;
     
     try {
-      setIsRedrafting(true);
-      setIsRedraftModalVisible(false);
-      setRedraftContent('');
+      setIsGeneratingReply(true);
+      setIsAIReplyModalVisible(false);
+      setAIReplyContent('');
       
       const documentContent = await Word.run(async (context) => {
         const body = context.document.body;
@@ -34,92 +34,88 @@ const CommentActions = ({ comment, onCommentResolved }) => {
         return body.text;
       });
 
-      const result = await redraftComment(
+      const result = await replyToComment(
         comment.content,
         documentContent,
-        redraftContent.trim(),
+        aiReplyContent.trim(),
         comment.replies || []
       );
 
       if (result) {
-        setRedraftResult(result);
+        setGeneratedReply(result);
       }
     } catch (error) {
-      message.error('Failed to redraft comment: ' + error.message);
+      message.error('Failed to generate reply: ' + error.message);
     } finally {
-      setIsRedrafting(false);
+      setIsGeneratingReply(false);
     }
   };
 
-  const handleAcceptRedraft = async () => {
+  const handleAcceptGeneratedReply = useCallback(async () => {
     try {
       await Word.run(async (context) => {
-        // Load the comments collection first
         const comments = context.document.body.getComments();
         comments.load("items");
         await context.sync();
 
-        // Find the target comment
         const targetComment = comments.items.find(c => c.id === comment.id);
         if (!targetComment) {
           throw new Error('Comment not found');
         }
 
-        // Load the replies collection
         targetComment.replies.load();
         await context.sync();
 
-        // Create a new reply
-        const newReply = targetComment.reply(redraftResult);
+        const newReply = targetComment.reply(generatedReply);
         await context.sync();
 
-        // Update the UI state
-        const replyObject = {
-          id: newReply.id,
-          content: redraftResult,
-          author: 'Cornelia AI',
-          date: new Date().toISOString()
+        const updatedComment = {
+          ...comment,
+          replies: [...(comment.replies || []), {
+            id: newReply.id,
+            content: generatedReply,
+            author: newReply.authorName || 'Unknown Author',
+            date: new Date().toISOString()
+          }]
         };
-
-        // Update the parent comment's state with the new reply
-        comment.replies = [...(comment.replies || []), replyObject];
         
+        onCommentUpdate(updatedComment);
+        setGeneratedReply(null);
         message.success('Reply added successfully');
-        setRedraftResult(null);
       });
     } catch (error) {
       console.error('Error adding reply:', error);
       message.error('Failed to add reply: ' + error.message);
     }
+  }, [comment, generatedReply, onCommentUpdate]);
+
+  const handleRejectGeneratedReply = () => {
+    setGeneratedReply(null);
   };
 
-  const handleRejectRedraft = () => {
-    setRedraftResult(null);
+  const handleRegenerateAIReply = () => {
+    setGeneratedReply(null);
+    setIsAIReplyModalVisible(true);
   };
 
-  const handleRegenerateRedraft = () => {
-    setRedraftResult(null);
-    setIsRedraftModalVisible(true);
-  };
-
-  const handleReply = async () => {
+  const handleRedraft = async () => {
     try {
-      // Implement reply logic here
-      message.success('Reply added successfully');
-      setIsReplyModalVisible(false);
-      setReplyContent('');
+      // Implement redraft logic here
+      message.success('Comment redrafted successfully');
+      setIsRedraftModalVisible(false);
+      setRedraftContent('');
     } catch (error) {
-      message.error('Failed to add reply');
+      message.error('Failed to redraft comment');
     }
   };
 
   const handleKeyPress = (e, action) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      if (action === 'redraft' && redraftContent.trim()) {
+      if (action === 'aiReply' && aiReplyContent.trim()) {
+        handleAIReply();
+      } else if (action === 'redraft' && redraftContent.trim()) {
         handleRedraft();
-      } else if (action === 'reply' && replyContent.trim()) {
-        handleReply();
       }
     }
   };
@@ -128,52 +124,89 @@ const CommentActions = ({ comment, onCommentResolved }) => {
     <>
       <div className="comment-actions-grid">
         <Button
-          type="primary"
           icon={<EditOutlined />}
           onClick={() => setIsRedraftModalVisible(true)}
-          loading={isRedrafting}
         >
           Redraft
         </Button>
         <Button
+          type="primary"
           icon={<MessageOutlined />}
-          onClick={() => setIsReplyModalVisible(true)}
+          onClick={() => setIsAIReplyModalVisible(true)}
+          loading={isGeneratingReply}
         >
           Reply
         </Button>
       </div>
 
-      {/* Redraft Result Card */}
-      {redraftResult && (
-        <div className="redraft-result-card mt-4 p-4 bg-white rounded-lg shadow">
-          <div className="text-sm text-gray-600 mb-2">Suggested Redraft:</div>
-          <div className="text-base mb-4">{redraftResult}</div>
+      {/* Generated Reply Card */}
+      {generatedReply && (
+        <div className="reply-result-card mt-4 p-4 bg-white rounded-lg shadow">
+          <div className="text-sm text-gray-600 mb-2">AI Generated Reply:</div>
+          <div className="text-base mb-4">{generatedReply}</div>
           <div className="flex justify-end space-x-2">
             <Button
               type="text"
               icon={<CloseCircleOutlined className="text-red-500" />}
-              onClick={handleRejectRedraft}
+              onClick={handleRejectGeneratedReply}
             />
             <Button
               type="text"
               icon={<SyncOutlined className="text-blue-500" />}
-              onClick={handleRegenerateRedraft}
+              onClick={handleRegenerateAIReply}
             />
             <Button
               type="text"
               icon={<CheckCircleOutlined className="text-green-500" />}
-              onClick={handleAcceptRedraft}
+              onClick={handleAcceptGeneratedReply}
             />
           </div>
         </div>
       )}
 
-      {/* Redraft Modal */}
+      {/* AI Reply Modal */}
       <Modal
         title={
           <div className="modal-title">
             <EditOutlined className="modal-icon" />
-            <span>Redraft Comment</span>
+            <span>Reply with Cornelia</span>
+          </div>
+        }
+        open={isAIReplyModalVisible}
+        onCancel={() => {
+          setIsAIReplyModalVisible(false);
+          setAIReplyContent('');
+        }}
+        footer={
+          <Button 
+            type="primary"
+            icon={<CheckCircleOutlined />}
+            onClick={handleAIReply}
+          >
+            Generate Reply
+          </Button>
+        }
+        width={360}
+        className="ai-reply-modal"
+        closeIcon={null}
+      >
+        <TextArea
+          rows={5}
+          value={aiReplyContent}
+          onChange={e => setAIReplyContent(e.target.value)}
+          onKeyPress={e => handleKeyPress(e, 'aiReply')}
+          placeholder="Give instructions for your reply..."
+          className="ai-reply-textarea"
+          autoFocus
+        />
+      </Modal>
+
+      {/* Redraft Modal */}
+      <Modal
+        title={
+          <div className="modal-title">
+            <MessageOutlined className="modal-icon" />
+            <span>Redraft with Cornelia</span>
           </div>
         }
         open={isRedraftModalVisible}
@@ -199,51 +232,13 @@ const CommentActions = ({ comment, onCommentResolved }) => {
           value={redraftContent}
           onChange={e => setRedraftContent(e.target.value)}
           onKeyPress={e => handleKeyPress(e, 'redraft')}
-          placeholder="Instruct the redraft if needed..."
+          placeholder="Give instructions for your redraft..."
           className="redraft-textarea"
-          autoFocus
-        />
-      </Modal>
-
-      {/* Reply Modal */}
-      <Modal
-        title={
-          <div className="modal-title">
-            <MessageOutlined className="modal-icon" />
-            <span>Add Reply</span>
-          </div>
-        }
-        open={isReplyModalVisible}
-        onCancel={() => {
-          setIsReplyModalVisible(false);
-          setReplyContent('');
-        }}
-        footer={
-          <Button 
-            type="primary"
-            icon={<CheckCircleOutlined />}
-            onClick={handleReply}
-            disabled={!replyContent.trim()}
-          >
-            Reply
-          </Button>
-        }
-        width={360}
-        className="reply-modal"
-        closeIcon={null}
-      >
-        <TextArea
-          rows={5}
-          value={replyContent}
-          onChange={e => setReplyContent(e.target.value)}
-          onKeyPress={e => handleKeyPress(e, 'reply')}
-          placeholder="Write your reply..."
-          className="reply-textarea"
           autoFocus
         />
       </Modal>
     </>
   );
-};
+});
 
-export default CommentActions;
+export default React.memo(CommentActions);

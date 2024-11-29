@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Layout, Button, Space } from 'antd';
 import { 
   FileSearchOutlined, 
@@ -36,12 +36,9 @@ const App = () => {
   const [homeSummaryLoading, setHomeSummaryLoading] = useState(false);
   const [homeSummaryReady, setHomeSummaryReady] = useState(false);
 
-  // Add useEffect to load document content and comments on mount
-  useEffect(() => {
-    readDocument();
-  }, []);
 
-  const readDocument = async () => {
+  // Memoize the readDocument function
+  const readDocument = useCallback(async () => {
     try {
       await Word.run(async (context) => {
         const body = context.document.body;
@@ -59,40 +56,54 @@ const App = () => {
         });
         await context.sync();
 
-        const processedComments = docComments.items.map(comment => {
-          // Get replies for each comment
-          const replies = comment.replies ? comment.replies.items.map(reply => ({
+        const processedComments = docComments.items.map(comment => ({
+          id: comment.id,
+          content: comment.content || '',
+          author: comment.authorName || 'Unknown Author',
+          authorEmail: comment.authorEmail || '',
+          resolved: comment.resolved || false,
+          date: comment.created ? new Date(comment.created).toISOString() : new Date().toISOString(),
+          replies: comment.replies ? comment.replies.items.map(reply => ({
             id: reply.id,
             content: reply.content || '',
             author: reply.authorName || 'Unknown Author',
             date: reply.created ? new Date(reply.created).toISOString() : new Date().toISOString(),
-          })) : [];
-
-          return {
-            id: comment.id,
-            content: comment.content || '',
-            author: comment.authorName || 'Unknown Author',
-            authorEmail: comment.authorEmail || '',
-            resolved: comment.resolved || false,
-            date: comment.created ? new Date(comment.created).toISOString() : new Date().toISOString(),
-            replies: replies
-          };
-        });
+          })) : []
+        }));
 
         // Separate resolved and unresolved comments
         const unresolvedComments = processedComments.filter(comment => !comment.resolved);
         const resolvedComments = processedComments.filter(comment => comment.resolved);
 
-        // Set both states
+        // Batch state updates
         setComments(unresolvedComments);
         setInitialResolvedComments(resolvedComments);
-
-        await context.sync();
       });
     } catch (error) {
       logger.error("Error reading document:", error);
     }
-  };
+  }, []); // Empty dependency array since it doesn't depend on any props/state
+
+  // Add polling for comment updates
+  useEffect(() => {
+    // Initial load
+    readDocument();
+
+    // Set up polling interval (every 5 seconds)
+    const pollInterval = setInterval(readDocument, 5000);
+
+    // Cleanup on unmount
+    return () => clearInterval(pollInterval);
+  }, [readDocument]);
+
+  // Memoize handlers that update comments
+  const handleCommentUpdate = useCallback((updatedComment) => {
+    setComments(prevComments => 
+      prevComments.map(comment => 
+        comment.id === updatedComment.id ? updatedComment : comment
+      )
+    );
+  }, []);
 
   const handleGenerateSummary = async () => {
     if (!documentContent) {
@@ -229,7 +240,7 @@ const App = () => {
           />
         );
       case 'comments':
-        return <CommentList comments={comments} setComments={setComments} initialResolvedComments={initialResolvedComments} />;
+        return <CommentList comments={comments} setComments={setComments} initialResolvedComments={initialResolvedComments} onCommentUpdate={handleCommentUpdate} />;
       case 'chat':
         return (
           <ChatWindow 
@@ -273,7 +284,7 @@ const App = () => {
               <div className="bg-gray-50 rounded-lg p-4 h-full">
                 <h3 className="text-base font-medium mb-3">Document Comments</h3>
                 <div className="comments-scroll-container">
-                  <CommentList comments={comments} setComments={setComments} initialResolvedComments={initialResolvedComments} />
+                  <CommentList comments={comments} setComments={setComments} initialResolvedComments={initialResolvedComments} onCommentUpdate={handleCommentUpdate} />
                 </div>
               </div>
             </div>
@@ -303,7 +314,16 @@ const App = () => {
     <Layout className="h-screen">
       {renderHeader()}
       <Content className="flex-1 overflow-auto bg-gray-100">
-        {renderContent()}
+        {activeView === 'comments' ? (
+          <CommentList 
+            comments={comments} 
+            setComments={setComments}
+            initialResolvedComments={initialResolvedComments}
+            onCommentUpdate={handleCommentUpdate}
+          />
+        ) : (
+          renderContent()
+        )}
       </Content>
     </Layout>
   );
