@@ -217,4 +217,16 @@ export const redraftComment = async (comment, documentContent, selectedText, ins
   }
 };
 
+export const analyzeDocumentClauses = async (text) => {
+  try {
+    const response = await api.post('/analyze_clauses/', {
+      text: text
+    });
+    return response.data.success ? response.data.result : null;
+  } catch (error) {
+    logger.error('Error in clause analysis:', error);
+    throw error;
+  }
+};
+
 export default api;

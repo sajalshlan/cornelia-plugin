@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Layout, Button, Space } from 'antd';
+import { Layout, Button, Space, Spin, Typography } from 'antd';
 import { 
   FileSearchOutlined, 
   CommentOutlined, 
@@ -12,6 +12,9 @@ import ChatWindow from './ChatWindow';
 import { logger } from '../../api';
 import '../styles/components.css';
 import { performAnalysis } from '../../api';
+import ClauseAnalysis from './ClauseAnalysis';
+import { analyzeDocumentClauses } from '../../api';
+const { Text } = Typography;
 
 const { Content } = Layout;
 
@@ -36,9 +39,15 @@ const App = () => {
   const [homeSummaryLoading, setHomeSummaryLoading] = useState(false);
   const [homeSummaryReady, setHomeSummaryReady] = useState(false);
 
+  // Add new state variables
+  const [clauseAnalysis, setClauseAnalysis] = useState(null);
+  const [clauseAnalysisLoading, setClauseAnalysisLoading] = useState(false);
 
-  // Memoize the readDocument function
-  const readDocument = useCallback(async () => {
+  // Add new state for tracking initial load
+  const [initialLoadComplete, setInitialLoadComplete] = useState(false);
+
+  // Separate function for initial document load
+  const initialDocumentLoad = useCallback(async () => {
     try {
       await Word.run(async (context) => {
         const body = context.document.body;
@@ -50,6 +59,39 @@ const App = () => {
         
         setDocumentContent(body.text);
         
+        // Only perform clause analysis on initial load
+        if (!initialLoadComplete && !clauseAnalysis) {
+          try {
+            setClauseAnalysisLoading(true);
+            const result = await analyzeDocumentClauses(body.text);
+            setClauseAnalysis(result);
+          } catch (error) {
+            console.error('Clause analysis failed:', error);
+          } finally {
+            setClauseAnalysisLoading(false);
+          }
+        }
+
+        // Process comments...
+        // [Existing comment processing code]
+        
+        setInitialLoadComplete(true);
+      });
+    } catch (error) {
+      logger.error("Error in initial document load:", error);
+    }
+  }, [initialLoadComplete, clauseAnalysis]);
+
+  // Separate function for polling updates
+  const pollDocumentUpdates = useCallback(async () => {
+    try {
+      await Word.run(async (context) => {
+        const docComments = context.document.body.getComments();
+        docComments.load("items");
+        await context.sync();
+        
+        // Only process comments during polling
+        // [Existing comment processing code]
         // Load all properties for comments including replies and resolved status
         docComments.items.forEach(comment => {
           comment.load(["id", "authorName", "text", "created", "replies", "resolved"]);
@@ -62,7 +104,8 @@ const App = () => {
           author: comment.authorName || 'Unknown Author',
           authorEmail: comment.authorEmail || '',
           resolved: comment.resolved || false,
-          date: comment.created ? new Date(comment.created).toISOString() : new Date().toISOString(),
+          date: comment.created ? new Date(comment.created).toISOString() : new Date().toISOString
+          (),
           replies: comment.replies ? comment.replies.items.map(reply => ({
             id: reply.id,
             content: reply.content || '',
@@ -80,21 +123,20 @@ const App = () => {
         setInitialResolvedComments(resolvedComments);
       });
     } catch (error) {
-      logger.error("Error reading document:", error);
+      logger.error("Error polling document updates:", error);
     }
-  }, []); // Empty dependency array since it doesn't depend on any props/state
+  }, []);
 
-  // Add polling for comment updates
+    // Update useEffect to use both functions
   useEffect(() => {
     // Initial load
-    readDocument();
+    initialDocumentLoad();
 
-    // Set up polling interval (every 5 seconds)
-    const pollInterval = setInterval(readDocument, 3000);
+    // Set up polling for comments only
+    const pollInterval = setInterval(pollDocumentUpdates, 3000);
 
-    // Cleanup on unmount
     return () => clearInterval(pollInterval);
-  }, [readDocument]);
+  }, [initialDocumentLoad, pollDocumentUpdates]);
 
   // Memoize handlers that update comments
   const handleCommentUpdate = useCallback((updatedComment) => {
@@ -219,6 +261,7 @@ const App = () => {
             {activeView === 'summary' && 'Document Summary'}
             {activeView === 'comments' && 'Document Comments'}
             {activeView === 'chat' && 'Ask Cornelia'}
+            {activeView === 'analysis' && 'Clause Analysis'}
           </h2>
         </div>
       );
@@ -251,6 +294,42 @@ const App = () => {
             error={chatError}
             onSubmit={handleChatSubmit}
           />
+        );
+      case 'analysis':
+        return (
+          <div className="p-4">
+            {clauseAnalysisLoading ? (
+              <div className="flex flex-col items-center justify-center">
+                <Spin size="large" />
+                <Text className="mt-4">Analyzing document...</Text>
+              </div>
+            ) : !clauseAnalysis ? (
+              <div className="flex flex-col items-center justify-center">
+                <Button 
+                  type="primary"
+                  icon={<FileSearchOutlined />}
+                  onClick={async () => {
+                    try {
+                      setClauseAnalysisLoading(true);
+                      const result = await analyzeDocumentClauses(documentContent);
+                      setClauseAnalysis(result);
+                    } catch (error) {
+                      console.error('Clause analysis failed:', error);
+                    } finally {
+                      setClauseAnalysisLoading(false);
+                    }
+                  }}
+                >
+                  Start Analysis
+                </Button>
+              </div>
+            ) : (
+              <ClauseAnalysis 
+                results={clauseAnalysis}
+                loading={clauseAnalysisLoading}
+              />
+            )}
+          </div>
         );
       default:
         return (
@@ -301,6 +380,30 @@ const App = () => {
                     size="middle"
                   >
                     Start Chat
+                  </Button>
+                </div>
+              </div>
+            </div>
+
+            {/* Analysis Card */}
+            <div className="px-4 py-2 mb-4">
+              <div className="bg-white rounded-lg shadow-sm p-4 border border-gray-200 hover:border-blue-400 transition-colors">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-base font-medium m-0">Clause Analysis</h3>
+                  <Button
+                    type={clauseAnalysis ? "default" : "primary"}
+                    className={clauseAnalysis ? "bg-green-600 hover:bg-green-700 text-white border-green-600" : ""}
+                    icon={<FileSearchOutlined />}
+                    onClick={() => setActiveView('analysis')}
+                    loading={clauseAnalysisLoading}
+                    size="middle"
+                  >
+                    {clauseAnalysisLoading 
+                      ? 'Analyzing...' 
+                      : clauseAnalysis 
+                        ? 'View Analysis →' 
+                        : 'Analyze Document'
+                    }
                   </Button>
                 </div>
               </div>
