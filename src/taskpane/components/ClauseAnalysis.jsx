@@ -4,7 +4,8 @@ import {
   CheckCircleOutlined, 
   WarningOutlined, 
   ExclamationCircleOutlined,
-  ReloadOutlined 
+  ReloadOutlined,
+  InfoCircleOutlined
 } from '@ant-design/icons';
 import { logger } from '../../api';
 
@@ -12,6 +13,37 @@ const { Panel } = Collapse;
 const { Text, Title } = Typography;
 
 const ClauseAnalysis = React.memo(({ results, loading }) => {
+  const scrollToClause = async (clauseText) => {
+    try {
+      await Word.run(async (context) => {
+        // Take first 255 characters of the clause text to stay within Word's search limits
+        const searchText = clauseText.substring(0, 255);
+        
+        const searchResults = context.document.body.search(searchText);
+        context.load(searchResults);
+        await context.sync();
+
+        if (searchResults.items.length > 0) {
+          searchResults.items[0].select();
+          searchResults.items[0].scrollIntoView();
+          
+          // Optional: Add highlighting
+        //   searchResults.items[0].font.highlightColor = '#FFEB3B';
+          
+          // Remove highlight after 2 seconds
+          setTimeout(async () => {
+            await Word.run(async (context) => {
+              searchResults.items[0].font.highlightColor = 'None';
+              await context.sync();
+            });
+          }, 2000);
+        }
+      });
+    } catch (error) {
+      logger.error('Error scrolling to clause:', error);
+    }
+  };
+
   const { acceptable = [], risky = [], missing = [] } = JSON.parse(results) || {};
   
   if (loading) {
@@ -38,20 +70,51 @@ const ClauseAnalysis = React.memo(({ results, loading }) => {
     );
   }
 
-//   useEffect(() => {
-//     if (results) {
-//       logger.info('ClauseAnalysis received results:', results);
-//       logger.info('Acceptable clauses:', results.acceptable);
-//       if (results.acceptable?.length > 0) {
-//         logger.info('First acceptable clause:', results.acceptable[0]);
-//         logger.info('First acceptable clause title:', results.acceptable[0]?.title);
-//         logger.info('First acceptable clause text:', results.acceptable[0]?.text);
-//       }
-//     }
-//   }, [results]);
+  const renderClauseItem = (item, type) => (
+    <List.Item 
+      className="bg-white rounded-lg mb-2 p-4 cursor-pointer hover:shadow-md transition-shadow"
+      onClick={() => item.text !== 'N/A' && scrollToClause(item.text)}
+    >
+      <div className="w-full">
+        <div className="flex items-center justify-between">
+          <Text strong className="text-lg">{item.title}</Text>
+          <Tag color={type === 'acceptable' ? 'success' : type === 'risky' ? 'warning' : 'error'}>
+            {type === 'acceptable' ? 'Acceptable' : type === 'risky' ? 'Needs Review' : 'Missing'}
+          </Tag>
+        </div>
+        
+        {/* Clause Text Section */}
+        {item.text !== 'N/A' && (
+          <div className="mt-2 text-gray-600 border-l-4 border-green-400 pl-3">
+            <Text>
+              {item.text.length > 200 
+                ? `${item.text.substring(0, 200)}...` 
+                : item.text}
+            </Text>
+            <Button 
+              type="link" 
+              size="small" 
+              className="ml-2"
+              onClick={(e) => {
+                e.stopPropagation();
+                scrollToClause(item.text);
+              }}
+            >
+              Go to clause →
+            </Button>
+          </div>
+        )}
 
-//   logger.info('Raw ClauseAnalysis results:', results);
-
+        {/* Explanation Section */}
+        <div className="mt-2 text-gray-500 bg-gray-50 p-2 rounded">
+          <Text italic>
+            <InfoCircleOutlined className="mr-2" />
+            {item.explanation}
+          </Text>
+        </div>
+      </div>
+    </List.Item>
+  );
 
   return (
     <div className="p-4">
@@ -69,32 +132,7 @@ const ClauseAnalysis = React.memo(({ results, loading }) => {
         >
           <List
             dataSource={acceptable}
-            renderItem={item => {
-              try {
-                return (
-                  <List.Item className="bg-white rounded-lg mb-2 p-4">
-                    <div className="w-full">
-                      <div className="flex items-center justify-between">
-                        <Text strong className="text-lg">{item.title}</Text>
-                        <Tag color="success">Acceptable</Tag>
-                      </div>
-                      {item.text !== 'N/A' ? (
-                        <div className="mt-2 text-gray-600 border-l-4 border-green-400 pl-3">
-                          {item.text}
-                        </div>
-                      ) : null}
-                      <div className="mt-2 text-gray-500 text-sm bg-gray-50 p-2 rounded">
-                        <Text type="secondary">Analysis: </Text>
-                        {item.explanation}
-                      </div>
-                    </div>
-                  </List.Item>
-                );
-              } catch (error) {
-                logger.error('Error rendering clause item:', error);
-                return null;
-              }
-            }}
+            renderItem={item => renderClauseItem(item, 'acceptable')}
           />
         </Panel>
 
@@ -110,25 +148,7 @@ const ClauseAnalysis = React.memo(({ results, loading }) => {
         >
           <List
             dataSource={risky}
-            renderItem={item => (
-              <List.Item className="bg-white rounded-lg mb-2 p-4">
-                <div className="w-full">
-                  <div className="flex items-center justify-between">
-                    <Text strong className="text-lg text-yellow-600">{item.title}</Text>
-                    <Tag color="warning">Needs Review</Tag>
-                  </div>
-                  {item.text !== 'N/A' ? (
-                    <div className="mt-2 text-gray-600 border-l-4 border-yellow-400 pl-3">
-                      {item.text}
-                    </div>
-                  ) : null}
-                  <div className="mt-2 text-gray-500 text-sm bg-yellow-50 p-2 rounded">
-                    <Text type="warning">Risk Analysis: </Text>
-                    {item.explanation}
-                  </div>
-                </div>
-              </List.Item>
-            )}
+            renderItem={item => renderClauseItem(item, 'risky')}
           />
         </Panel>
 
@@ -144,20 +164,7 @@ const ClauseAnalysis = React.memo(({ results, loading }) => {
         >
           <List
             dataSource={missing}
-            renderItem={item => (
-              <List.Item className="bg-white rounded-lg mb-2 p-4">
-                <div className="w-full">
-                  <div className="flex items-center justify-between">
-                    <Text strong className="text-lg text-red-600">{item.title}</Text>
-                    <Tag color="error">Missing</Tag>
-                  </div>
-                  <div className="mt-2 text-gray-500 text-sm bg-red-50 p-2 rounded">
-                    <Text type="danger">Recommendation: </Text>
-                    {item.explanation}
-                  </div>
-                </div>
-              </List.Item>
-            )}
+            renderItem={item => renderClauseItem(item, 'missing')}
           />
         </Panel>
       </Collapse>
