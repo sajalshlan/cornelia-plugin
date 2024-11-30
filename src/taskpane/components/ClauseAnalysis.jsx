@@ -24,6 +24,7 @@ const ClauseAnalysis = React.memo(({ results, loading }) => {
   const redraftTextAreaRef = useRef(null);
   const [isGeneratingRedraft, setIsGeneratingRedraft] = useState(false);
   const [redraftedClauses, setRedraftedClauses] = useState(new Set());
+  const [redraftedTexts, setRedraftedTexts] = useState(new Map());
 
   const scrollToClause = async (clauseText) => {
     try {
@@ -100,7 +101,10 @@ const ClauseAnalysis = React.memo(({ results, loading }) => {
   const handleAcceptRedraft = async () => {
     try {
       await Word.run(async (context) => {
-        const searchResults = context.document.body.search(generatedRedraft.clause.text);
+        // Get the text to search for - either the current redrafted text or the original
+        const searchText = redraftedTexts.get(generatedRedraft.clause.text) || generatedRedraft.clause.text;
+        
+        const searchResults = context.document.body.search(searchText);
         context.load(searchResults);
         await context.sync();
 
@@ -108,15 +112,47 @@ const ClauseAnalysis = React.memo(({ results, loading }) => {
           searchResults.items[0].insertText(generatedRedraft.text, Word.InsertLocation.replace);
           await context.sync();
           
+          // Update both our tracking states
           setRedraftedClauses(prev => new Set([...prev, generatedRedraft.clause.text]));
+          setRedraftedTexts(prev => new Map(prev).set(generatedRedraft.clause.text, generatedRedraft.text));
+          
           setGeneratedRedraft(null);
           message.success('Text redrafted successfully');
+        } else {
+          // If we can't find the current text, try the original as fallback
+          if (searchText !== generatedRedraft.clause.text) {
+            const originalSearchResults = context.document.body.search(generatedRedraft.clause.text);
+            context.load(originalSearchResults);
+            await context.sync();
+
+            if (originalSearchResults.items.length > 0) {
+              originalSearchResults.items[0].insertText(generatedRedraft.text, Word.InsertLocation.replace);
+              await context.sync();
+              
+              setRedraftedClauses(prev => new Set([...prev, generatedRedraft.clause.text]));
+              setRedraftedTexts(prev => new Map(prev).set(generatedRedraft.clause.text, generatedRedraft.text));
+              
+              setGeneratedRedraft(null);
+              message.success('Text redrafted successfully');
+            } else {
+              throw new Error('Could not find the clause text in the document');
+            }
+          }
         }
       });
     } catch (error) {
       console.error('Error applying redraft:', error);
       message.error('Failed to apply redraft: ' + error.message);
     }
+  };
+
+  const handleRedraftClick = (item) => {
+    setSelectedClause({
+      ...item,
+      // If this clause has been redrafted before, use its current text
+      text: redraftedTexts.get(item.text) || item.text
+    });
+    setIsRedraftModalVisible(true);
   };
 
   const { acceptable = [], risky = [], missing = [] } = JSON.parse(results) || {};
@@ -149,7 +185,7 @@ const ClauseAnalysis = React.memo(({ results, loading }) => {
     <List.Item 
       className={`bg-white rounded-lg mb-2 p-4 cursor-pointer hover:shadow-md transition-shadow
         ${redraftedClauses.has(item.text) ? 'border-l-4 border-green-500' : ''}`}
-      onClick={() => item.text !== 'N/A' && scrollToClause(item.text)}
+      onClick={() => type !== 'missing' && item.text !== 'N/A' && scrollToClause(item.text)}
     >
       <div className="w-full">
         <div className="flex items-center justify-between">
@@ -166,26 +202,28 @@ const ClauseAnalysis = React.memo(({ results, loading }) => {
           </div>
         </div>
         
-        {/* Clause Text Section */}
-        <div className={`mt-2 text-gray-600 pl-3 
-          ${redraftedClauses.has(item.text) ? 'border-l-2 border-green-200' : ''}`}>
-          <Text>
-            {item.text.length > 200 
-              ? `${item.text.substring(0, 200)}...` 
-              : item.text}
-          </Text>
-          <Button 
-            type="link" 
-            size="small" 
-            className="ml-2"
-            onClick={(e) => {
-              e.stopPropagation();
-              scrollToClause(item.text);
-            }}
-          >
-            Go to clause →
-          </Button>
-        </div>
+        {/* Clause Text Section - Only show for non-missing clauses */}
+        {type !== 'missing' && (
+          <div className={`mt-2 text-gray-600 pl-3 
+            ${redraftedClauses.has(item.text) ? 'border-l-2 border-green-200' : ''}`}>
+            <Text>
+              {item.text.length > 200 
+                ? `${item.text.substring(0, 200)}...` 
+                : item.text}
+            </Text>
+            <Button 
+              type="link" 
+              size="small" 
+              className="ml-2"
+              onClick={(e) => {
+                e.stopPropagation();
+                scrollToClause(item.text);
+              }}
+            >
+              Go to clause →
+            </Button>
+          </div>
+        )}
 
         {/* Explanation Section */}
         <div className="mt-2 text-gray-500 bg-gray-50 p-2 rounded">
@@ -196,7 +234,7 @@ const ClauseAnalysis = React.memo(({ results, loading }) => {
         </div>
 
         {/* Redraft Button Section */}
-        {(type === 'risky' || type === 'missing') && item.text !== 'N/A' && (
+        {(type === 'risky' || type === 'missing') && (
           <div className="mt-2">
             <Button
               type={redraftedClauses.has(item.text) ? "default" : "primary"}
@@ -204,13 +242,15 @@ const ClauseAnalysis = React.memo(({ results, loading }) => {
               icon={redraftedClauses.has(item.text) ? <CheckCircleOutlined /> : <EditOutlined />}
               onClick={(e) => {
                 e.stopPropagation();
-                setSelectedClause(item);
-                setIsRedraftModalVisible(true);
+                handleRedraftClick(item);
               }}
               loading={isGeneratingRedraft && selectedClause?.text === item.text}
               className={redraftedClauses.has(item.text) ? "text-green-600 border-green-600" : ""}
             >
-              {redraftedClauses.has(item.text) ? 'Redraft Again' : 'Redraft Clause'}
+              {type === 'missing' 
+                ? (redraftedClauses.has(item.text) ? 'Draft Again' : 'Draft Clause')
+                : (redraftedClauses.has(item.text) ? 'Redraft Again' : 'Redraft Clause')
+              }
             </Button>
           </div>
         )}
