@@ -4,7 +4,10 @@ import {
   FileSearchOutlined, 
   CommentOutlined, 
   MessageOutlined,
-  ArrowLeftOutlined 
+  ArrowLeftOutlined,
+  CheckCircleOutlined, 
+  WarningOutlined, 
+  ExclamationCircleOutlined 
 } from '@ant-design/icons';
 import DocumentSummary from './DocumentSummary';
 import CommentList from './CommentList';
@@ -46,6 +49,13 @@ const App = () => {
   // Add new state for tracking initial load
   const [initialLoadComplete, setInitialLoadComplete] = useState(false);
 
+  // Add this near other state declarations
+  const [clauseAnalysisCounts, setClauseAnalysisCounts] = useState({
+    acceptable: 0,
+    risky: 0,
+    missing: 0
+  });
+
   // Separate function for initial document load
   const initialDocumentLoad = useCallback(async () => {
     try {
@@ -65,6 +75,14 @@ const App = () => {
             setClauseAnalysisLoading(true);
             const result = await analyzeDocumentClauses(body.text);
             setClauseAnalysis(result);
+            
+            // Parse results and set counts
+            const parsedResults = JSON.parse(result);
+            setClauseAnalysisCounts({
+              acceptable: parsedResults.acceptable?.length || 0,
+              risky: parsedResults.risky?.length || 0,
+              missing: parsedResults.missing?.length || 0
+            });
           } catch (error) {
             console.error('Clause analysis failed:', error);
           } finally {
@@ -333,70 +351,95 @@ const App = () => {
         );
       default:
         return (
-          <div className="flex flex-col h-full">
-            {/* Top Summary Card - More Compact */}
-            <div className="px-4 py-2">
-              <div className="bg-white rounded-lg shadow-sm p-4 border border-gray-200 hover:border-blue-400 transition-colors">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-base font-medium m-0">Document Summary</h3>
-                  <Button
-                    type={homeSummaryReady ? "default" : "primary"}
-                    className={homeSummaryReady ? "bg-green-600 hover:bg-green-700 text-white border-green-600" : ""}
-                    icon={<FileSearchOutlined />}
-                    onClick={handleHomeSummaryClick}
-                    loading={homeSummaryLoading}
-                    size="middle"
-                  >
-                    {homeSummaryLoading 
-                      ? `Generating Summary ${summaryProgress > 0 ? `(${summaryProgress}%)` : ''}` 
-                      : homeSummaryReady 
-                        ? 'Summary Ready →' 
-                        : 'Generate Summary'
-                    }
-                  </Button>
-                </div>
-              </div>
-            </div>
+          <div className="flex flex-col h-full space-y-4 py-4">
+            {/* Merged Summary & Chat Card */}
+            <div className="px-4">
+              <div className="bg-white rounded-xl shadow-sm border border-gray-100 hover:border-blue-400 hover:shadow-md transition-all duration-200">
+                <div className="grid grid-cols-2 divide-x divide-gray-100">
+                  {/* Summary Section */}
+                  <div className="p-3">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h3 className="text-sm font-semibold text-gray-800 m-0">Document Summary</h3>
+                        {homeSummaryReady && (
+                          <p className="text-xs text-gray-500 mt-0.5">Ready to view</p>
+                        )}
+                      </div>
+                      <Button
+                        type={homeSummaryReady ? "default" : "primary"}
+                        className={`${homeSummaryReady 
+                          ? "bg-green-600 hover:bg-green-700 text-white border-green-600" 
+                          : ""}`}
+                        icon={<FileSearchOutlined />}
+                        onClick={handleHomeSummaryClick}
+                        loading={homeSummaryLoading}
+                        size="small"
+                      >
+                        {homeSummaryLoading 
+                          ? `${summaryProgress > 0 ? `${summaryProgress}%` : 'Loading'}` 
+                          : homeSummaryReady 
+                            ? 'View →' 
+                            : 'Generate'
+                        }
+                      </Button>
+                    </div>
+                  </div>
 
-            {/* Middle Comments Section - Larger */}
-            <div className="flex-1 overflow-auto px-4 py-2">
-              <div className="bg-gray-50 rounded-lg p-4 h-full">
-                <h3 className="text-base font-medium mb-3">Document Comments</h3>
-                <div className="comments-scroll-container">
-                  <CommentList comments={comments} setComments={setComments} initialResolvedComments={initialResolvedComments} onCommentUpdate={handleCommentUpdate} />
-                </div>
-              </div>
-            </div>
-
-            {/* Bottom Chat Card - More Compact */}
-            <div className="px-4 py-2">
-              <div className="bg-white rounded-lg shadow-sm p-4 border border-gray-200 hover:border-blue-400 transition-colors">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-base font-medium m-0">Ask Cornelia</h3>
-                  <Button
-                    type="primary"
-                    icon={<MessageOutlined />}
-                    onClick={() => setActiveView('chat')}
-                    size="middle"
-                  >
-                    Start Chat
-                  </Button>
+                  {/* Chat Section */}
+                  <div className="p-3">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h3 className="text-sm font-semibold text-gray-800 m-0">Ask Cornelia</h3>
+                        <p className="text-xs text-gray-500 mt-0.5">Get instant answers</p>
+                      </div>
+                      <Button
+                        type="primary"
+                        icon={<MessageOutlined />}
+                        onClick={() => setActiveView('chat')}
+                        size="small"
+                      >
+                        Chat
+                      </Button>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
 
             {/* Analysis Card */}
-            <div className="px-4 py-2 mb-4">
-              <div className="bg-white rounded-lg shadow-sm p-4 border border-gray-200 hover:border-blue-400 transition-colors">
+            <div className="px-4">
+              <div className="bg-white rounded-xl shadow-sm p-5 border border-gray-100 hover:border-blue-400 hover:shadow-md transition-all duration-200">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-base font-medium m-0">Clause Analysis</h3>
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-800 m-0">Clause Analysis</h3>
+                    {clauseAnalysis ? (
+                      <div className="flex gap-4 mt-2">
+                        <span className="inline-flex items-center text-sm font-medium text-green-600">
+                          <CheckCircleOutlined className="mr-1.5" />
+                          {clauseAnalysisCounts.acceptable} Acceptable
+                        </span>
+                        <span className="inline-flex items-center text-sm font-medium text-yellow-600">
+                          <WarningOutlined className="mr-1.5" />
+                          {clauseAnalysisCounts.risky} Risky
+                        </span>
+                        <span className="inline-flex items-center text-sm font-medium text-red-600">
+                          <ExclamationCircleOutlined className="mr-1.5" />
+                          {clauseAnalysisCounts.missing} Missing
+                        </span>
+                      </div>
+                    ) : (
+                      <p className="text-sm text-gray-500 mt-1">Analyze your document for potential issues</p>
+                    )}
+                  </div>
                   <Button
                     type={clauseAnalysis ? "default" : "primary"}
-                    className={clauseAnalysis ? "bg-green-600 hover:bg-green-700 text-white border-green-600" : ""}
+                    className={`${clauseAnalysis 
+                      ? "bg-green-600 hover:bg-green-700 text-white border-green-600 shadow-sm" 
+                      : "shadow-sm"}`}
                     icon={<FileSearchOutlined />}
                     onClick={() => setActiveView('analysis')}
                     loading={clauseAnalysisLoading}
-                    size="middle"
+                    size="large"
                   >
                     {clauseAnalysisLoading 
                       ? 'Analyzing...' 
@@ -405,6 +448,21 @@ const App = () => {
                         : 'Analyze Document'
                     }
                   </Button>
+                </div>
+              </div>
+            </div>
+
+            {/* Comments Section */}
+            <div className="flex-1 px-4 min-h-0">
+              <div className="bg-gray-50 rounded-xl p-5 h-full border border-gray-100">
+                <h3 className="text-lg font-semibold text-gray-800 mb-4">Document Comments</h3>
+                <div className="comments-scroll-container">
+                  <CommentList 
+                    comments={comments} 
+                    setComments={setComments} 
+                    initialResolvedComments={initialResolvedComments} 
+                    onCommentUpdate={handleCommentUpdate} 
+                  />
                 </div>
               </div>
             </div>
