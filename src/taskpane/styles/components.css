@@ -719,3 +719,33 @@
     box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
     background-color: #fff;
   }
+  
+  .redraft-preview.ant-input {
+    min-height: 120px;
+    border: 1px solid #d9d9d9;
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-size: 14px;
+    line-height: 1.6;
+    resize: vertical;
+  }
+  
+  .redraft-preview.ant-input:hover {
+    border-color: #d9d9d9;
+    background-color: #fff;
+  }
+  
+  .redraft-preview.ant-input:focus {
+    border-color: #40a9ff;
+    box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
+    background-color: #fff;
+  }
+  
+  .reply-result-card .ant-input,
+  .redraft-result-card .ant-input {
+    font-size: 14px;
+    line-height: 1.6;
+    padding: 12px;
+    background-color: #f8f9fa;
+    border-radius: 6px;
+  }

@@ -343,7 +343,7 @@ const CommentActions = React.memo(({ comment, onCommentUpdate }) => {
 
       {/* Generated Redraft Card */}
       {generatedRedraft && (
-        <div className="redraft-result-card mt-4 p-4 bg-white rounded-lg shadow">
+        <div className="redraft-result-card mt-4 p-4 bg-white shadow-sm border border-gray-200 rounded-lg">
           <div className="text-sm text-gray-600 mb-2">AI Generated Redraft:</div>
           <TextArea
             value={generatedRedraft.text}
@@ -354,8 +354,8 @@ const CommentActions = React.memo(({ comment, onCommentUpdate }) => {
                 handleAcceptRedraft();
               }
             }}
-            autoSize={{ minRows: 2, maxRows: 6 }}
-            className="mb-4 text-base"
+            autoSize={{ minRows: 4, maxRows: 12 }}
+            className="mb-4 text-base redraft-preview"
           />
           <div className="flex justify-end space-x-2">
             <Tooltip title="Reject">
@@ -402,7 +402,7 @@ const CommentActions = React.memo(({ comment, onCommentUpdate }) => {
 
       {/* Generated Reply Card */}
       {generatedReply && (
-        <div className="reply-result-card mt-4 p-4 bg-white rounded-lg shadow">
+        <div className="reply-result-card mt-4 p-4 bg-white shadow-sm border border-gray-200 rounded-lg">
           <div className="text-sm text-gray-600 mb-2">AI Generated Reply:</div>
           <TextArea
             value={generatedReply}
@@ -413,8 +413,8 @@ const CommentActions = React.memo(({ comment, onCommentUpdate }) => {
                 handleAcceptGeneratedReply();
               }
             }}
-            autoSize={{ minRows: 2, maxRows: 6 }}
-            className="mb-4 text-base"
+            autoSize={{ minRows: 4, maxRows: 12 }}
+            className="mb-4 text-base reply-preview"
           />
           <div className="flex justify-end space-x-2">
             <Button
