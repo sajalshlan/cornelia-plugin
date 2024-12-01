@@ -360,25 +360,20 @@ const App = () => {
                   <div className="p-3">
                     <div className="flex items-center justify-between">
                       <div>
-                        <h3 className="text-sm font-semibold text-gray-800 m-0">Document Summary</h3>
-                        {homeSummaryReady && (
-                          <p className="text-xs text-gray-500 mt-0.5">Ready to view</p>
-                        )}
+                        <h3 className="text-base font-medium text-gray-900 m-0">Document Summary</h3>
+                        <p className="text-xs text-gray-500 mt-0.5">Overview of your document</p>
                       </div>
                       <Button
-                        type={homeSummaryReady ? "default" : "primary"}
-                        className={`${homeSummaryReady 
-                          ? "bg-green-600 hover:bg-green-700 text-white border-green-600" 
-                          : ""}`}
+                        type="primary"
+                        className="flex items-center gap-1.5 !px-4 !h-8 rounded-full bg-blue-500 hover:bg-blue-600 text-sm"
                         icon={<FileSearchOutlined />}
                         onClick={handleHomeSummaryClick}
                         loading={homeSummaryLoading}
-                        size="small"
                       >
                         {homeSummaryLoading 
                           ? `${summaryProgress > 0 ? `${summaryProgress}%` : 'Loading'}` 
                           : homeSummaryReady 
-                            ? 'View →' 
+                            ? 'View' 
                             : 'Generate'
                         }
                       </Button>
@@ -389,14 +384,14 @@ const App = () => {
                   <div className="p-3">
                     <div className="flex items-center justify-between">
                       <div>
-                        <h3 className="text-sm font-semibold text-gray-800 m-0">Ask Cornelia</h3>
+                        <h3 className="text-base font-medium text-gray-900 m-0">Ask Cornelia</h3>
                         <p className="text-xs text-gray-500 mt-0.5">Get instant answers</p>
                       </div>
                       <Button
                         type="primary"
+                        className="flex items-center gap-1.5 !px-4 !h-8 rounded-full bg-blue-500 hover:bg-blue-600 text-sm"
                         icon={<MessageOutlined />}
                         onClick={() => setActiveView('chat')}
-                        size="small"
                       >
                         Chat
                       </Button>
@@ -432,9 +427,9 @@ const App = () => {
                     )}
                   </div>
                   <Button
-                    type={clauseAnalysis ? "default" : "primary"}
+                    type={clauseAnalysis ? "primary" : "primary"}
                     className={`${clauseAnalysis 
-                      ? "bg-green-600 hover:bg-green-700 text-white border-green-600 shadow-sm" 
+                      ? "!bg-green-600 !hover:bg-green-700 !text-white !border-green-600 shadow-sm hover:!text-white active:!text-white focus:!text-white" 
                       : "shadow-sm"}`}
                     icon={<FileSearchOutlined />}
                     onClick={() => setActiveView('analysis')}
