@@ -355,13 +355,13 @@ const App = () => {
             {/* Merged Summary & Chat Card */}
             <div className="px-4">
               <div className="bg-white rounded-xl shadow-sm border border-gray-100 hover:border-blue-400 hover:shadow-md transition-all duration-200">
-                <div className="grid grid-cols-2 divide-x divide-gray-100">
+                <div className="grid grid-cols-1 sm:grid-cols-2 divide-y sm:divide-y-0 sm:divide-x divide-gray-100">
                   {/* Summary Section */}
                   <div className="p-3">
                     <div className="flex items-center justify-between">
                       <div>
-                        <h3 className="text-base font-medium text-gray-900 m-0">Document Summary</h3>
-                        <p className="text-xs text-gray-500 mt-0.5">Overview of your document</p>
+                        <h3 className="text-sm font-semibold text-gray-900 m-0">Summary</h3>
+                        <p className="text-xs text-gray-500 mt-0.5">Overview your document</p>
                       </div>
                       <Button
                         type="primary"
@@ -374,7 +374,7 @@ const App = () => {
                           ? `${summaryProgress > 0 ? `${summaryProgress}%` : 'Loading'}` 
                           : homeSummaryReady 
                             ? 'View' 
-                            : 'Generate'
+                            : 'View'
                         }
                       </Button>
                     </div>
@@ -384,7 +384,7 @@ const App = () => {
                   <div className="p-3">
                     <div className="flex items-center justify-between">
                       <div>
-                        <h3 className="text-base font-medium text-gray-900 m-0">Ask Cornelia</h3>
+                        <h3 className="text-sm font-semibold text-gray-900 m-0">Ask Cornelia</h3>
                         <p className="text-xs text-gray-500 mt-0.5">Get instant answers</p>
                       </div>
                       <Button
@@ -403,44 +403,55 @@ const App = () => {
 
             {/* Analysis Card */}
             <div className="px-4">
-              <div className="bg-white rounded-xl shadow-sm p-5 border border-gray-100 hover:border-blue-400 hover:shadow-md transition-all duration-200">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-800 m-0">Clause Analysis</h3>
-                    {clauseAnalysis ? (
-                      <div className="flex gap-4 mt-2">
-                        <span className="inline-flex items-center text-sm font-medium text-green-600">
-                          <CheckCircleOutlined className="mr-1.5" />
-                          {clauseAnalysisCounts.acceptable} Acceptable
-                        </span>
-                        <span className="inline-flex items-center text-sm font-medium text-yellow-600">
-                          <WarningOutlined className="mr-1.5" />
-                          {clauseAnalysisCounts.risky} Risky
-                        </span>
-                        <span className="inline-flex items-center text-sm font-medium text-red-600">
-                          <ExclamationCircleOutlined className="mr-1.5" />
-                          {clauseAnalysisCounts.missing} Missing
-                        </span>
+              <div className="bg-white rounded-xl shadow-sm p-4 border border-gray-100 hover:border-blue-400 hover:shadow-md transition-all duration-200">
+                <div className="flex flex-col custom-flex-row items-center justify-between gap-4">
+                  <div className="w-full">
+                    <h3 className="text-xl font-semibold text-gray-800 m-0">Clause Analysis</h3>
+                    
+                    {/* Stats Row */} 
+                    <div className="flex items-center gap-6 mt-2">
+                      {/* Acceptable */}
+                      <div className="flex items-center gap-2">
+                        <CheckCircleOutlined className="text-md text-green-600" />
+                        <div>
+                          <span className="text-lg font-semibold text-green-600">{clauseAnalysisCounts.acceptable}</span>
+                          <div className="text-sm text-green-600">Acceptable</div>
+                        </div>
                       </div>
-                    ) : (
-                      <p className="text-sm text-gray-500 mt-1">Analyze your document for potential issues</p>
-                    )}
+
+                      {/* Risky */}
+                      <div className="flex items-center gap-2">
+                        <WarningOutlined className="text-md text-yellow-600" />
+                        <div>
+                          <span className="text-lg font-semibold text-yellow-600">{clauseAnalysisCounts.risky}</span>
+                          <div className="text-sm text-yellow-600">Risky</div>
+                        </div>
+                      </div>
+
+                      {/* Missing */}
+                      <div className="flex items-center gap-2">
+                        <ExclamationCircleOutlined className="text-md text-red-600" />
+                        <div>
+                          <span className="text-lg font-semibold text-red-600">{clauseAnalysisCounts.missing}</span>
+                          <div className="text-sm text-red-600">Missing</div>
+                        </div>
+                      </div>
+                    </div>
                   </div>
+
+                  {/* View Button */}
                   <Button
-                    type={clauseAnalysis ? "primary" : "primary"}
-                    className={`${clauseAnalysis 
-                      ? "!bg-green-600 !hover:bg-green-700 !text-white !border-green-600 shadow-sm hover:!text-white active:!text-white focus:!text-white" 
-                      : "shadow-sm"}`}
+                    type="primary"
+                    className="!bg-green-600 !hover:bg-green-700 !border-green-600 !text-white text-sm whitespace-nowrap"
                     icon={<FileSearchOutlined />}
                     onClick={() => setActiveView('analysis')}
                     loading={clauseAnalysisLoading}
-                    size="large"
                   >
                     {clauseAnalysisLoading 
-                      ? 'Analyzing...' 
+                      ? '' 
                       : clauseAnalysis 
-                        ? 'View Analysis →' 
-                        : 'Analyze Document'
+                        ? 'View' 
+                        : 'Analyze'
                     }
                   </Button>
                 </div>
@@ -449,8 +460,8 @@ const App = () => {
 
             {/* Comments Section */}
             <div className="flex-1 px-4 min-h-0">
-              <div className="bg-gray-50 rounded-xl p-5 h-full border border-gray-100">
-                <h3 className="text-lg font-semibold text-gray-800 mb-4">Document Comments</h3>
+              <div className="bg-gray-50 rounded-xl p-4 h-full border border-gray-100">
+                <h3 className="text-md font-semibold text-gray-800 mb-2">Document Comments</h3>
                 <div className="comments-scroll-container">
                   <CommentList 
                     comments={comments} 

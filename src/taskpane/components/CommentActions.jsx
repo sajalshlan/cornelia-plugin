@@ -343,95 +343,99 @@ const CommentActions = React.memo(({ comment, onCommentUpdate }) => {
 
       {/* Generated Redraft Card */}
       {generatedRedraft && (
-        <div className="redraft-result-card mt-4 p-4 bg-white shadow-sm border border-gray-200 rounded-lg">
+        <div className="redraft-result-card mt-4 p-4 bg-white shadow-sm border border-gray-200">
           <div className="text-sm text-gray-600 mb-2">AI Generated Redraft:</div>
-          <TextArea
-            value={generatedRedraft.text}
-            onChange={e => setGeneratedRedraft(prev => ({ ...prev, text: e.target.value }))}
-            onKeyPress={e => {
-              if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                handleAcceptRedraft();
-              }
-            }}
-            autoSize={{ minRows: 4, maxRows: 12 }}
-            className="mb-4 text-base redraft-preview"
-          />
-          <div className="flex justify-end space-x-2">
-            <Tooltip title="Reject">
-              <Button
-                type="text"
-                icon={<CloseCircleOutlined className="text-red-500" />}
-                onClick={handleRejectRedraft}
-              />
-            </Tooltip>
-            <Tooltip title="Regenerate">
-              <Button
-                type="text"
-                icon={<SyncOutlined className="text-blue-500" />}
-                onClick={handleRegenerateRedraft}
-              />
-            </Tooltip>
-            <Tooltip title="Accept & Resolve Comment">
-              <Button
-                type="text"
-                icon={
-                  <span className="icon-with-subscript">
-                    <CheckCircleOutlined className="main-icon text-green-500" />
-                    <CheckCircleOutlined className="subscript-icon text-green-500" />
-                  </span>
+          <div className="max-h-[200px] overflow-y-auto mb-4">
+            <TextArea
+              value={generatedRedraft.text}
+              onChange={e => setGeneratedRedraft(prev => ({ ...prev, text: e.target.value }))}
+              onKeyPress={e => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  handleAcceptRedraft();
                 }
-                onClick={handleAcceptAndResolve}
-              />
-            </Tooltip>
-            <Tooltip title="Accept & Add Reply">
-              <Button
-                type="text"
-                icon={
-                  <span className="icon-with-subscript">
-                    <CheckCircleOutlined className="main-icon text-green-500" />
-                    <MessageOutlined className="subscript-icon text-blue-500" />
-                  </span>
-                }
-                onClick={handleAcceptAndComment}
-              />
-            </Tooltip>
+              }}
+              autoSize={{ minRows: 4, maxRows: 12 }}
+              className="text-base redraft-preview"
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <Button 
+              size="small" 
+              onClick={handleRejectRedraft}
+              className="hover:bg-red-600 hover:border-red-600"
+            >
+              Reject
+            </Button>
+            <Button 
+              size="small" 
+              onClick={handleRegenerateRedraft}
+              className="hover:bg-blue-600 hover:border-blue-600 transition-colors"
+            >
+              Regenerate
+            </Button>
+            <Button 
+              size="small" 
+              type="primary" 
+              onClick={handleAcceptAndResolve}
+              className="hover:bg-green-600 hover:border-green-600 transition-colors"
+            >
+              Accept & Resolve
+            </Button>
+            <Button 
+              size="small" 
+              type="primary" 
+              onClick={handleAcceptAndComment}
+              className="hover:bg-green-600 hover:border-green-600 transition-colors"
+            >
+              Accept & Reply
+            </Button>
           </div>
         </div>
       )}
 
       {/* Generated Reply Card */}
       {generatedReply && (
-        <div className="reply-result-card mt-4 p-4 bg-white shadow-sm border border-gray-200 rounded-lg">
+        <div className="reply-result-card mt-4 p-4 bg-white shadow-sm border border-gray-200">
           <div className="text-sm text-gray-600 mb-2">AI Generated Reply:</div>
-          <TextArea
-            value={generatedReply}
-            onChange={e => setGeneratedReply(e.target.value)}
-            onKeyPress={e => {
-              if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                handleAcceptGeneratedReply();
-              }
-            }}
-            autoSize={{ minRows: 4, maxRows: 12 }}
-            className="mb-4 text-base reply-preview"
-          />
-          <div className="flex justify-end space-x-2">
-            <Button
-              type="text"
-              icon={<CloseCircleOutlined className="text-red-500" />}
+          <div className="max-h-[200px] overflow-y-auto mb-4">
+            <TextArea
+              value={generatedReply}
+              onChange={e => setGeneratedReply(e.target.value)}
+              onKeyPress={e => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  handleAcceptGeneratedReply();
+                }
+              }}
+              autoSize={{ minRows: 4, maxRows: 12 }}
+              className="text-base reply-preview"
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <Button 
+              size="small" 
               onClick={handleRejectGeneratedReply}
-            />
-            <Button
-              type="text"
-              icon={<SyncOutlined className="text-blue-500" />}
+              className="hover:bg-red-600 hover:border-red-600 transition-colors"
+            >
+              Reject
+            </Button>
+            <Button 
+              size="small" 
               onClick={handleRegenerateAIReply}
-            />
-            <Button
-              type="text"
-              icon={<CheckCircleOutlined className="text-green-500" />}
+              className="hover:bg-blue-600 hover:border-blue-600 transition-colors"
+            >
+              Regenerate
+            </Button>
+            <Button 
+              size="small" 
+              type="primary" 
               onClick={handleAcceptGeneratedReply}
-            />
+              className="hover:bg-green-600 hover:border-green-600 transition-colors"
+            >
+              Accept
+            </Button>
+            <div></div> {/* Empty div to maintain grid alignment */}
           </div>
         </div>
       )}

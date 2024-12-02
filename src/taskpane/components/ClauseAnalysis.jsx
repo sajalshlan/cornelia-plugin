@@ -183,14 +183,14 @@ const ClauseAnalysis = React.memo(({ results, loading }) => {
 
   const renderClauseItem = (item, type) => (
     <List.Item 
-      className={`bg-white rounded-lg mb-2 p-4 cursor-pointer hover:shadow-md transition-shadow
+      className={`bg-white rounded-lg mb-2 p-2 sm:p-4 cursor-pointer hover:shadow-md transition-shadow
         ${redraftedClauses.has(item.text) ? 'border-l-4 border-green-500' : ''}`}
       onClick={() => type !== 'missing' && item.text !== 'N/A' && scrollToClause(item.text)}
     >
       <div className="w-full">
-        <div className="flex items-center justify-between">
-          <Text strong className="text-lg">{item.title}</Text>
-          <div className="flex items-center space-x-2">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+          <Text strong className="text-base sm:text-lg">{item.title}</Text>
+          <div className="flex flex-wrap items-center gap-2">
             {redraftedClauses.has(item.text) && (
               <Tag color="success" icon={<CheckCircleOutlined />}>
                 Redrafted
@@ -204,17 +204,17 @@ const ClauseAnalysis = React.memo(({ results, loading }) => {
         
         {/* Clause Text Section - Only show for non-missing clauses */}
         {type !== 'missing' && (
-          <div className={`mt-2 text-gray-600 pl-3 
+          <div className={`mt-2 text-gray-600 pl-2 sm:pl-3 text-sm sm:text-base
             ${redraftedClauses.has(item.text) ? 'border-l-2 border-green-200' : ''}`}>
             <Text>
-              {item.text.length > 200 
-                ? `${item.text.substring(0, 200)}...` 
+              {item.text.length > 150 
+                ? `${item.text.substring(0, 150)}...` 
                 : item.text}
             </Text>
             <Button 
               type="link" 
               size="small" 
-              className="ml-2"
+              className="ml-2 text-xs sm:text-sm"
               onClick={(e) => {
                 e.stopPropagation();
                 scrollToClause(item.text);
@@ -226,7 +226,7 @@ const ClauseAnalysis = React.memo(({ results, loading }) => {
         )}
 
         {/* Explanation Section */}
-        <div className="mt-2 text-gray-500 bg-gray-50 p-2 rounded">
+        <div className="mt-2 text-gray-500 bg-gray-50 p-2 rounded text-xs sm:text-sm">
           <Text italic>
             <InfoCircleOutlined className="mr-2" />
             {item.explanation}
@@ -245,7 +245,7 @@ const ClauseAnalysis = React.memo(({ results, loading }) => {
                 handleRedraftClick(item);
               }}
               loading={isGeneratingRedraft && selectedClause?.text === item.text}
-              className={redraftedClauses.has(item.text) ? "text-green-600 border-green-600" : ""}
+              className={`w-full sm:w-auto text-xs sm:text-sm ${redraftedClauses.has(item.text) ? "text-green-600 border-green-600" : ""}`}
             >
               {type === 'missing' 
                 ? (redraftedClauses.has(item.text) ? 'Draft Again' : 'Draft Clause')
@@ -260,12 +260,15 @@ const ClauseAnalysis = React.memo(({ results, loading }) => {
 
   return (
     <>
-      <div className="p-4">
-        <Title level={4} className="mb-4">Document Clause Analysis</Title>
-        <Collapse defaultActiveKey={['risky']} className="w-full shadow-sm">
+      <div className="p-2 sm:p-4">
+        <Title level={4} className="mb-2 sm:mb-4 text-base sm:text-lg">Document Clause Analysis</Title>
+        <Collapse 
+          defaultActiveKey={['risky']} 
+          className="w-full shadow-sm [&_.ant-collapse-content-box]:p-2 sm:[&_.ant-collapse-content-box]:p-4"
+        >
           <Panel 
             header={
-              <div className="flex items-center">
+              <div className="flex items-center text-sm sm:text-base">
                 <CheckCircleOutlined className="text-green-500 mr-2" />
                 <span className="font-medium">Acceptable Clauses ({acceptable?.length || 0})</span>
               </div>
@@ -281,7 +284,7 @@ const ClauseAnalysis = React.memo(({ results, loading }) => {
 
           <Panel 
             header={
-              <div className="flex items-center">
+              <div className="flex items-center text-sm sm:text-base">
                 <WarningOutlined className="text-yellow-500 mr-2" />
                 <span className="font-medium">Risky Clauses ({risky?.length || 0})</span>
               </div>
@@ -297,7 +300,7 @@ const ClauseAnalysis = React.memo(({ results, loading }) => {
 
           <Panel 
             header={
-              <div className="flex items-center">
+              <div className="flex items-center text-sm sm:text-base">
                 <ExclamationCircleOutlined className="text-red-500 mr-2" />
                 <span className="font-medium">Missing Clauses ({missing?.length || 0})</span>
               </div>
@@ -315,7 +318,7 @@ const ClauseAnalysis = React.memo(({ results, loading }) => {
 
       <Modal
         title={
-          <div className="modal-title">
+          <div className="modal-title text-sm sm:text-base">
             <EditOutlined className="modal-icon" />
             <span>Redraft Clause with Cornelia</span>
           </div>
@@ -332,11 +335,13 @@ const ClauseAnalysis = React.memo(({ results, loading }) => {
             icon={<CheckCircleOutlined />}
             onClick={handleRedraft}
             loading={isGeneratingRedraft}
+            className="w-full sm:w-auto"
           >
             Redraft
           </Button>
         }
-        width={600}
+        width="90vw"
+        className="sm:max-w-[600px]"
       >
         {selectedClause && (
           <>
