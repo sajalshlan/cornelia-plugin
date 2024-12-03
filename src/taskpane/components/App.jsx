@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Layout, Button, Space, Spin, Typography, Select, Radio, Card } from 'antd';
+import { Layout, Button, Space, Spin, Typography, Select, Radio, Card, Tag } from 'antd';
 import { 
   FileSearchOutlined, 
   CommentOutlined, 
   MessageOutlined,
-  ArrowLeftOutlined,
+  ArrowLeftOutlined, 
   CheckCircleOutlined, 
   WarningOutlined, 
   ExclamationCircleOutlined 
@@ -72,6 +72,24 @@ const App = () => {
   const [isLoadingParties, setIsLoadingParties] = useState(true);
   const [selectedParty, setSelectedParty] = useState(null);
 
+  // Add this function near the top of your component
+  const getTagColor = (role) => {
+    switch (role?.toLowerCase()) {
+      case 'first party':
+        return 'blue';
+      case 'second party/successful resolution applicant (sra)':
+        return 'purple';
+      case 'escrow bank':
+        return 'green';
+      case 'spv (special purpose vehicle)':
+        return 'orange';
+      case 'company/corporate debtor':
+        return 'red';
+      default:
+        return 'default';
+    }
+  };
+
   // Modify the existing initialDocumentLoad function
   const initialDocumentLoad = useCallback(async () => {
     try {
@@ -89,7 +107,6 @@ const App = () => {
         try {
           setIsLoadingParties(true);
           const result = await analyzeParties(body.text);
-          logger.info('Parties analysis result:', result);
           
           // Parse the string result into an object
           let parsedResult;
@@ -111,11 +128,10 @@ const App = () => {
               .filter(party => party && party.name)
               .map(party => ({
                 name: party.name,
-                type: party.type || 'Unknown',
+                role: party.role || 'Unknown Role',
               }));
               
             setParties(validParties);
-            logger.info('Processed parties:', validParties);
           } else {
             logger.warn('Invalid parties analysis result structure:', parsedResult);
             setParties([]);
@@ -452,12 +468,48 @@ const App = () => {
                       ) : !selectedParty ? (
                         <Select
                           placeholder="Select a party"
-                          style={{ width: 200 }}
+                          style={{ width: 300 }}
                           options={parties?.map(party => ({
                             value: party.name,
-                            label: party.name
+                            label: (
+                              <div style={{ 
+                                display: 'flex', 
+                                flexDirection: 'column', 
+                                gap: '4px',
+                                width: '100%',
+                                maxWidth: '280px' // Leave some space for the dropdown arrow
+                              }}>
+                                <span style={{ 
+                                  fontWeight: 500,
+                                  wordWrap: 'break-word',
+                                  whiteSpace: 'normal',
+                                  lineHeight: '1.4'
+                                }}>
+                                  {party.name}
+                                </span>
+                                <Tag color={getTagColor(party.role)} style={{
+                                  maxWidth: '100%',
+                                  whiteSpace: 'normal',
+                                  height: 'auto',
+                                  padding: '2px 8px',
+                                  lineHeight: '1.4'
+                                }}>
+                                  {party.role || 'Unknown Role'}
+                                </Tag>
+                              </div>
+                            )
                           }))}
-                          value={selectedParty}
+                          listItemHeight={80} // Increase height for wrapped content
+                          listHeight={400} // Increase dropdown height
+                          optionRender={(option) => (
+                            <div style={{ 
+                              padding: '8px',
+                              width: '100%',
+                              wordBreak: 'break-word'
+                            }}>
+                              {option.data.label}
+                            </div>
+                          )}
                           onChange={async (value) => {
                             setSelectedParty(value);
                             try {
