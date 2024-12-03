@@ -234,7 +234,7 @@ const ClauseAnalysis = React.memo(({ results, loading }) => {
         </div>
 
         {/* Redraft Button Section */}
-        {(type === 'risky' || type === 'missing') && (
+        {type === 'risky' && (
           <div className="mt-2">
             <Button
               type={redraftedClauses.has(item.text) ? "default" : "primary"}
@@ -247,10 +247,7 @@ const ClauseAnalysis = React.memo(({ results, loading }) => {
               loading={isGeneratingRedraft && selectedClause?.text === item.text}
               className={`w-full sm:w-auto text-xs sm:text-sm ${redraftedClauses.has(item.text) ? "text-green-600 border-green-600" : ""}`}
             >
-              {type === 'missing' 
-                ? (redraftedClauses.has(item.text) ? 'Draft Again' : 'Draft Clause')
-                : (redraftedClauses.has(item.text) ? 'Redraft Again' : 'Redraft Clause')
-              }
+              {redraftedClauses.has(item.text) ? 'Redraft Again' : 'Redraft Clause'}
             </Button>
           </div>
         )}

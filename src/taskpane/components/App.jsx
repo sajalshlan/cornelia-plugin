@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Layout, Button, Space, Spin, Typography } from 'antd';
+import { Layout, Button, Space, Spin, Typography, Select, Radio, Card } from 'antd';
 import { 
   FileSearchOutlined, 
   CommentOutlined, 
@@ -17,6 +17,7 @@ import '../styles/components.css';
 import { performAnalysis } from '../../api';
 import ClauseAnalysis from './ClauseAnalysis';
 import { analyzeDocumentClauses } from '../../api';
+import { analyzeParties } from '../../api';
 const { Text } = Typography;
 
 const { Content } = Layout;
@@ -56,7 +57,22 @@ const App = () => {
     missing: 0
   });
 
-  // Separate function for initial document load
+  // Add new state
+  const [selectedAnalysisType, setSelectedAnalysisType] = useState(null);
+
+  // Add analysis options
+  const analysisOptions = [
+    { value: 'contract', label: 'Contract Analysis' },
+    { value: 'privacy', label: 'Privacy Policy Analysis' },
+    { value: 'terms', label: 'Terms & Conditions Analysis' }
+  ];
+
+  // Add new state variables
+  const [parties, setParties] = useState([]);
+  const [isLoadingParties, setIsLoadingParties] = useState(true);
+  const [selectedParty, setSelectedParty] = useState(null);
+
+  // Modify the existing initialDocumentLoad function
   const initialDocumentLoad = useCallback(async () => {
     try {
       await Word.run(async (context) => {
@@ -69,36 +85,56 @@ const App = () => {
         
         setDocumentContent(body.text);
         
-        // Only perform clause analysis on initial load
-        if (!initialLoadComplete && !clauseAnalysis) {
+        // Enhanced parties analysis handling
+        try {
+          setIsLoadingParties(true);
+          const result = await analyzeParties(body.text);
+          logger.info('Parties analysis result:', result);
+          
+          // Parse the string result into an object
+          let parsedResult;
           try {
-            setClauseAnalysisLoading(true);
-            const result = await analyzeDocumentClauses(body.text);
-            setClauseAnalysis(result);
-            
-            // Parse results and set counts
-            const parsedResults = JSON.parse(result);
-            setClauseAnalysisCounts({
-              acceptable: parsedResults.acceptable?.length || 0,
-              risky: parsedResults.risky?.length || 0,
-              missing: parsedResults.missing?.length || 0
-            });
-          } catch (error) {
-            console.error('Clause analysis failed:', error);
-          } finally {
-            setClauseAnalysisLoading(false);
+            parsedResult = JSON.parse(result);
+          } catch (parseError) {
+            logger.error('Error parsing parties result:', parseError);
+            setParties([]);
+            return;
           }
+          
+          // Handle the parsed result
+          if (parsedResult && (Array.isArray(parsedResult) || typeof parsedResult === 'object')) {
+            const partiesArray = Array.isArray(parsedResult) ? parsedResult : 
+                                Array.isArray(parsedResult.parties) ? parsedResult.parties :
+                                [];
+            
+            const validParties = partiesArray
+              .filter(party => party && party.name)
+              .map(party => ({
+                name: party.name,
+                type: party.type || 'Unknown',
+              }));
+              
+            setParties(validParties);
+            logger.info('Processed parties:', validParties);
+          } else {
+            logger.warn('Invalid parties analysis result structure:', parsedResult);
+            setParties([]);
+          }
+        } catch (error) {
+          logger.error('Error analyzing parties:', error);
+          setParties([]);
+        } finally {
+          setIsLoadingParties(false);
         }
-
-        // Process comments...
-        // [Existing comment processing code]
         
         setInitialLoadComplete(true);
       });
     } catch (error) {
       logger.error("Error in initial document load:", error);
+      setParties([]);
+      setIsLoadingParties(false);
     }
-  }, [initialLoadComplete, clauseAnalysis]);
+  }, []);
 
   // Separate function for polling updates
   const pollDocumentUpdates = useCallback(async () => {
@@ -406,54 +442,100 @@ const App = () => {
               <div className="bg-white rounded-xl shadow-sm p-4 border border-gray-100 hover:border-blue-400 hover:shadow-md transition-all duration-200">
                 <div className="flex flex-col custom-flex-row items-center justify-between gap-4">
                   <div className="w-full">
-                    <h3 className="text-xl font-semibold text-gray-800 m-0">Clause Analysis</h3>
-                    
-                    {/* Stats Row */} 
-                    <div className="flex items-center gap-6 mt-2">
-                      {/* Acceptable */}
-                      <div className="flex items-center gap-2">
-                        <CheckCircleOutlined className="text-md text-green-600" />
-                        <div>
-                          <span className="text-lg font-semibold text-green-600">{clauseAnalysisCounts.acceptable}</span>
-                          <div className="text-sm text-green-600">Acceptable</div>
-                        </div>
-                      </div>
-
-                      {/* Risky */}
-                      <div className="flex items-center gap-2">
-                        <WarningOutlined className="text-md text-yellow-600" />
-                        <div>
-                          <span className="text-lg font-semibold text-yellow-600">{clauseAnalysisCounts.risky}</span>
-                          <div className="text-sm text-yellow-600">Risky</div>
-                        </div>
-                      </div>
-
-                      {/* Missing */}
-                      <div className="flex items-center gap-2">
-                        <ExclamationCircleOutlined className="text-md text-red-600" />
-                        <div>
-                          <span className="text-lg font-semibold text-red-600">{clauseAnalysisCounts.missing}</span>
-                          <div className="text-sm text-red-600">Missing</div>
-                        </div>
-                      </div>
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="text-xl font-semibold text-gray-800 m-0">Clause Analysis</h3>
+                      
+                      {isLoadingParties ? (
+                        <Button loading className="w-[200px]">
+                          Analyzing Parties...
+                        </Button>
+                      ) : !selectedParty ? (
+                        <Select
+                          placeholder="Select a party"
+                          style={{ width: 200 }}
+                          options={parties?.map(party => ({
+                            value: party.name,
+                            label: party.name
+                          }))}
+                          value={selectedParty}
+                          onChange={async (value) => {
+                            setSelectedParty(value);
+                            try {
+                              setClauseAnalysisLoading(true);
+                              const result = await analyzeDocumentClauses(documentContent);
+                              setClauseAnalysis(result);
+                              
+                              // Parse results and set counts
+                              const parsedResults = JSON.parse(result);
+                              setClauseAnalysisCounts({
+                                acceptable: parsedResults.acceptable?.length || 0,
+                                risky: parsedResults.risky?.length || 0,
+                                missing: parsedResults.missing?.length || 0
+                              });
+                            } catch (error) {
+                              console.error('Clause analysis failed:', error);
+                              setSelectedParty(null);
+                            } finally {
+                              setClauseAnalysisLoading(false);
+                            }
+                          }}
+                        />
+                      ) : (
+                        <Button
+                          loading={clauseAnalysisLoading}
+                          disabled={clauseAnalysisLoading}
+                          className="w-[200px] !text-gray-700"
+                        >
+                          {clauseAnalysisLoading ? 'Analyzing...' : selectedParty}
+                        </Button>
+                      )}
                     </div>
+                    
+                    {/* Only show analysis results if we have a selected party and analysis is complete */}
+                    {selectedParty && clauseAnalysis && (
+                      <div className="flex items-center gap-6 mt-2">
+                        {/* Acceptable */}
+                        <div className="flex items-center gap-2">
+                          <CheckCircleOutlined className="text-md text-green-600" />
+                          <div>
+                            <span className="text-lg font-semibold text-green-600">{clauseAnalysisCounts.acceptable}</span>
+                            <div className="text-sm text-green-600">Acceptable</div>
+                          </div>
+                        </div>
+
+                        {/* Risky */}
+                        <div className="flex items-center gap-2">
+                          <WarningOutlined className="text-md text-yellow-600" />
+                          <div>
+                            <span className="text-lg font-semibold text-yellow-600">{clauseAnalysisCounts.risky}</span>
+                            <div className="text-sm text-yellow-600">Risky</div>
+                          </div>
+                        </div>
+
+                        {/* Missing */}
+                        <div className="flex items-center gap-2">
+                          <ExclamationCircleOutlined className="text-md text-red-600" />
+                          <div>
+                            <span className="text-lg font-semibold text-red-600">{clauseAnalysisCounts.missing}</span>
+                            <div className="text-sm text-red-600">Missing</div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
 
-                  {/* View Button */}
-                  <Button
-                    type="primary"
-                    className="!bg-green-600 !hover:bg-green-700 !border-green-600 !text-white text-sm whitespace-nowrap"
-                    icon={<FileSearchOutlined />}
-                    onClick={() => setActiveView('analysis')}
-                    loading={clauseAnalysisLoading}
-                  >
-                    {clauseAnalysisLoading 
-                      ? '' 
-                      : clauseAnalysis 
-                        ? 'View' 
-                        : 'Analyze'
-                    }
-                  </Button>
+                  {/* View Button - Only show if analysis is complete */}
+                  {clauseAnalysis && selectedParty && (
+                    <Button
+                      type="primary"
+                      className="!bg-green-600 !hover:bg-green-700 !border-green-600 !text-white text-sm whitespace-nowrap"
+                      icon={<FileSearchOutlined />}
+                      onClick={() => setActiveView('analysis')}
+                      loading={clauseAnalysisLoading}
+                    >
+                      View Analysis
+                    </Button>
+                  )}
                 </div>
               </div>
             </div>

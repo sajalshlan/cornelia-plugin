@@ -229,4 +229,16 @@ export const analyzeDocumentClauses = async (text) => {
   }
 };
 
+export const analyzeParties = async (text) => {
+  try {
+    const response = await api.post('/analyze_parties/', {
+      text: text
+    });
+    return response.data.success ? response.data.parties : null;
+  } catch (error) {
+    logger.error('Error in party analysis:', error);
+    throw error;
+  }
+};
+
 export default api;
