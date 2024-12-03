@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Layout, Button, Space, Spin, Typography, Select, Radio, Card, Tag } from 'antd';
+import { Layout, Button, Space, Spin, Typography, Select, Radio, Card, Tag, message } from 'antd';
 import { 
   FileSearchOutlined, 
   CommentOutlined, 
@@ -107,7 +107,7 @@ const App = () => {
         try {
           setIsLoadingParties(true);
           const result = await analyzeParties(body.text);
-          logger.info('Parties result:', result);
+          // logger.info('Parties result:', result);
           // Parse the string result into an object
           let parsedResult;
           try {
@@ -375,24 +375,15 @@ const App = () => {
                 <Spin size="large" />
                 <Text className="mt-4">Analyzing document...</Text>
               </div>
-            ) : !clauseAnalysis ? (
+            ) : !selectedParty || !clauseAnalysis ? (
               <div className="flex flex-col items-center justify-center">
+                <Text className="mb-4">Please select a party from the home screen to start analysis</Text>
                 <Button 
                   type="primary"
-                  icon={<FileSearchOutlined />}
-                  onClick={async () => {
-                    try {
-                      setClauseAnalysisLoading(true);
-                      const result = await analyzeDocumentClauses(documentContent);
-                      setClauseAnalysis(result);
-                    } catch (error) {
-                      console.error('Clause analysis failed:', error);
-                    } finally {
-                      setClauseAnalysisLoading(false);
-                    }
-                  }}
+                  icon={<ArrowLeftOutlined />}
+                  onClick={() => setActiveView(null)}
                 >
-                  Start Analysis
+                  Return to Home
                 </Button>
               </div>
             ) : (
@@ -469,7 +460,7 @@ const App = () => {
                         <Button loading className="w-[200px]">
                           Analyzing Parties...
                         </Button>
-                      ) : !selectedParty ? (
+                      ) : !selectedParty || !clauseAnalysis ? (
                         <Select
                           placeholder="Select a party"
                           style={{ width: 300 }}
@@ -520,21 +511,58 @@ const App = () => {
                             try {
                               setClauseAnalysisLoading(true);
                               const result = await analyzeDocumentClauses(documentContent, {
-                                partyName: selectedParty.name,
-                                partyRole: selectedParty.role
+                                name: selectedParty.name,
+                                role: selectedParty.role
                               });
-                              setClauseAnalysis(result);
+
+                              // Log the raw result
+                              logger.info('Raw analysis result:', {
+                                type: typeof result,
+                                value: result
+                              });
+
+                              // If result is null or undefined, throw error
+                              if (!result) {
+                                throw new Error('No analysis results received');
+                              }
+
+                              // Handle different result types
+                              let parsedResult;
+                              if (typeof result === 'string') {
+                                try {
+                                  parsedResult = JSON.parse(result);
+                                } catch (parseError) {
+                                  logger.error('JSON Parse error:', {
+                                    error: parseError,
+                                    result: result?.substring(0, 100) // Log first 100 chars
+                                  });
+                                  throw new Error('Invalid JSON response');
+                                }
+                              } else if (typeof result === 'object') {
+                                parsedResult = result;
+                              } else {
+                                throw new Error('Unexpected result type');
+                              }
+
+                              // Validate structure
+                              if (!parsedResult || !parsedResult.acceptable || !parsedResult.risky || !parsedResult.missing) {
+                                throw new Error('Invalid analysis result structure');
+                              }
+
+                              // Store the parsed result
+                              setClauseAnalysis(parsedResult);
                               
-                              // Parse results and set counts
-                              const parsedResults = JSON.parse(result);
+                              // Set counts
                               setClauseAnalysisCounts({
-                                acceptable: parsedResults.acceptable?.length || 0,
-                                risky: parsedResults.risky?.length || 0,
-                                missing: parsedResults.missing?.length || 0
+                                acceptable: parsedResult.acceptable.length || 0,
+                                risky: parsedResult.risky.length || 0,
+                                missing: parsedResult.missing.length || 0
                               });
+
                             } catch (error) {
-                              console.error('Clause analysis failed:', error);
-                              setSelectedParty(null);
+                              logger.error('Clause analysis failed:', error);
+                              message.error(`Analysis failed: ${error.message}`);
+                              setClauseAnalysis(null);
                             } finally {
                               setClauseAnalysisLoading(false);
                             }
@@ -542,11 +570,15 @@ const App = () => {
                         />
                       ) : (
                         <Button
+                          onClick={() => {
+                            setSelectedParty(null);
+                            setClauseAnalysis(null);
+                          }}
                           loading={clauseAnalysisLoading}
                           disabled={clauseAnalysisLoading}
                           className="w-[200px] !text-gray-700"
                         >
-                          {clauseAnalysisLoading ? 'Analyzing...' : selectedParty}
+                          {clauseAnalysisLoading ? 'Analyzing...' : selectedParty.name}
                         </Button>
                       )}
                     </div>

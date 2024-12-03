@@ -27,6 +27,42 @@ const ClauseAnalysis = React.memo(({ results, loading, selectedParty, getTagColo
   const [redraftedClauses, setRedraftedClauses] = useState(new Set());
   const [redraftedTexts, setRedraftedTexts] = useState(new Map());
 
+  useEffect(() => {
+    logger.info('ClauseAnalysis received results:', {
+      type: typeof results,
+      value: results
+    });
+  }, [results]);
+
+  const parseResults = (resultsString) => {
+    try {
+      if (typeof resultsString === 'object' && resultsString !== null) {
+        logger.info('Results already an object:', resultsString);
+        return resultsString;
+      }
+      
+      if (typeof resultsString !== 'string') {
+        logger.warn('Results is neither string nor object:', resultsString);
+        return { acceptable: [], risky: [], missing: [] };
+      }
+
+      const parsed = JSON.parse(resultsString);
+      logger.info('Successfully parsed results:', parsed);
+      return parsed;
+    } catch (error) {
+      logger.error('Error parsing analysis results:', {
+        error,
+        resultsString: resultsString?.substring(0, 100)
+      });
+      return { acceptable: [], risky: [], missing: [] };
+    }
+  };
+
+  const parsedResults = parseResults(results);
+  const acceptable = parsedResults?.acceptable || [];
+  const risky = parsedResults?.risky || [];
+  const missing = parsedResults?.missing || [];
+
   const scrollToClause = async (clauseText) => {
     try {
       await Word.run(async (context) => {
@@ -156,8 +192,6 @@ const ClauseAnalysis = React.memo(({ results, loading, selectedParty, getTagColo
     setIsRedraftModalVisible(true);
   };
 
-  const { acceptable = [], risky = [], missing = [] } = JSON.parse(results) || {};
-  
   const renderPartyContext = () => {
     if (!selectedParty) return null;
     

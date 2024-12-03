@@ -219,14 +219,20 @@ export const redraftComment = async (comment, documentContent, selectedText, ins
 
 export const analyzeDocumentClauses = async (text, partyInfo = null) => {
   try {
-    
-    const response = await api.post('/analyze_clauses/', {
+    logger.info('Analyzing document clauses for party:', partyInfo);
+    const requestBody = {
       text: text,
       partyInfo: partyInfo ? {
         name: partyInfo.name,
-        role: partyInfo.role
+        role: partyInfo.role,
+        // You can add additional fields here if needed:
+        // type: partyInfo.type,          // e.g., 'individual', 'company'
+        // jurisdiction: partyInfo.jurisdiction,
+        // representatives: partyInfo.representatives,
       } : null
-    });
+    };
+
+    const response = await api.post('/analyze_clauses/', requestBody);
 
     if (response.data.success) {
       logger.info('Clause analysis completed successfully');
