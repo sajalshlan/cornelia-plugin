@@ -107,7 +107,7 @@ const App = () => {
         try {
           setIsLoadingParties(true);
           const result = await analyzeParties(body.text);
-          
+          logger.info('Parties result:', result);
           // Parse the string result into an object
           let parsedResult;
           try {
@@ -130,6 +130,8 @@ const App = () => {
                 name: party.name,
                 role: party.role || 'Unknown Role',
               }));
+
+              logger.info('Parties:', validParties);
               
             setParties(validParties);
           } else {
@@ -395,8 +397,10 @@ const App = () => {
               </div>
             ) : (
               <ClauseAnalysis 
-                results={clauseAnalysis}
+                results={clauseAnalysis} 
                 loading={clauseAnalysisLoading}
+                selectedParty={selectedParty}
+                getTagColor={getTagColor}
               />
             )}
           </div>
@@ -511,10 +515,14 @@ const App = () => {
                             </div>
                           )}
                           onChange={async (value) => {
-                            setSelectedParty(value);
+                            const selectedParty = parties.find(p => p.name === value);
+                            setSelectedParty(selectedParty);
                             try {
                               setClauseAnalysisLoading(true);
-                              const result = await analyzeDocumentClauses(documentContent);
+                              const result = await analyzeDocumentClauses(documentContent, {
+                                partyName: selectedParty.name,
+                                partyRole: selectedParty.role
+                              });
                               setClauseAnalysis(result);
                               
                               // Parse results and set counts

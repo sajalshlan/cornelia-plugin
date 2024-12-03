@@ -8,15 +8,16 @@ import {
   InfoCircleOutlined,
   EditOutlined,
   CloseCircleOutlined,
-  SyncOutlined
+  SyncOutlined,
+  UserOutlined
 } from '@ant-design/icons';
 import { logger, redraftComment } from '../../api';
 
 const { Panel } = Collapse;
-const { Text, Title } = Typography;
-const { TextArea } = Input; 
+const { Text, Title, Paragraph } = Typography;
+const { TextArea } = Input;
 
-const ClauseAnalysis = React.memo(({ results, loading }) => {
+const ClauseAnalysis = React.memo(({ results, loading, selectedParty, getTagColor }) => {
   const [isRedraftModalVisible, setIsRedraftModalVisible] = useState(false);
   const [redraftContent, setRedraftContent] = useState('');
   const [selectedClause, setSelectedClause] = useState(null);
@@ -157,64 +158,63 @@ const ClauseAnalysis = React.memo(({ results, loading }) => {
 
   const { acceptable = [], risky = [], missing = [] } = JSON.parse(results) || {};
   
-  if (loading) {
+  const renderPartyContext = () => {
+    if (!selectedParty) return null;
+    
     return (
-      <div className="flex flex-col justify-center items-center p-8 h-full">
-        <Spin size="large" />
-        <Text className="mt-4 text-gray-500">Analyzing document clauses...</Text>
+      <div className="mb-4 p-4 bg-blue-50 rounded-lg border border-blue-100">
+        <div className="flex items-center gap-2 mb-2">
+          <UserOutlined className="text-blue-500" />
+          <Text strong>Analyzing from perspective of:</Text>
+        </div>
+        <div className="ml-6">
+          <Text className="block">{selectedParty.name}</Text>
+          <Tag color={getTagColor(selectedParty.role)} className="mt-1">
+            {selectedParty.role}
+          </Tag>
+        </div>
       </div>
     );
-  }
-
-  if (!results) {
-    return (
-      <div className="flex flex-col justify-center items-center p-8">
-        <Empty
-          description="No analysis results available"
-          image={Empty.PRESENTED_IMAGE_SIMPLE}
-        >
-          <Button type="primary" icon={<ReloadOutlined />}>
-            Analyze Again
-          </Button>
-        </Empty>
-      </div>
-    );
-  }
+  };
 
   const renderClauseItem = (item, type) => (
     <List.Item 
-      className={`bg-white rounded-lg mb-2 p-2 sm:p-4 cursor-pointer hover:shadow-md transition-shadow
+      className={`bg-white rounded-lg mb-2 p-4 cursor-pointer hover:shadow-md transition-shadow
         ${redraftedClauses.has(item.text) ? 'border-l-4 border-green-500' : ''}`}
       onClick={() => type !== 'missing' && item.text !== 'N/A' && scrollToClause(item.text)}
     >
       <div className="w-full">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-          <Text strong className="text-base sm:text-lg">{item.title}</Text>
+        {/* Title and Tags Section */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3">
+          <Text strong className="text-lg">{item.title}</Text>
           <div className="flex flex-wrap items-center gap-2">
             {redraftedClauses.has(item.text) && (
               <Tag color="success" icon={<CheckCircleOutlined />}>
                 Redrafted
               </Tag>
             )}
-            <Tag color={type === 'acceptable' ? 'success' : type === 'risky' ? 'warning' : 'error'}>
-              {type === 'acceptable' ? 'Acceptable' : type === 'risky' ? 'Needs Review' : 'Missing'}
+            <Tag 
+              color={type === 'acceptable' ? 'success' : type === 'risky' ? 'warning' : 'error'}
+              icon={type === 'acceptable' ? <CheckCircleOutlined /> : type === 'risky' ? <WarningOutlined /> : <ExclamationCircleOutlined />}
+            >
+              {type === 'acceptable' ? 'Favorable' : type === 'risky' ? 'Needs Review' : 'Missing'}
             </Tag>
           </div>
         </div>
         
-        {/* Clause Text Section - Only show for non-missing clauses */}
+        {/* Clause Text Section */}
         {type !== 'missing' && (
-          <div className={`mt-2 text-gray-600 pl-2 sm:pl-3 text-sm sm:text-base
+          <div className={`mt-3 bg-gray-50 p-3 rounded-lg text-gray-700
             ${redraftedClauses.has(item.text) ? 'border-l-2 border-green-200' : ''}`}>
             <Text>
-              {item.text.length > 150 
-                ? `${item.text.substring(0, 150)}...` 
+              {item.text.length > 200 
+                ? `${item.text.substring(0, 200)}...` 
                 : item.text}
             </Text>
             <Button 
               type="link" 
               size="small" 
-              className="ml-2 text-xs sm:text-sm"
+              className="ml-2"
               onClick={(e) => {
                 e.stopPropagation();
                 scrollToClause(item.text);
@@ -225,29 +225,30 @@ const ClauseAnalysis = React.memo(({ results, loading }) => {
           </div>
         )}
 
-        {/* Explanation Section */}
-        <div className="mt-2 text-gray-500 bg-gray-50 p-2 rounded text-xs sm:text-sm">
-          <Text italic>
-            <InfoCircleOutlined className="mr-2" />
+        {/* Analysis Section */}
+        <div className="mt-3 bg-blue-50 p-3 rounded-lg">
+          <Text type="secondary" className="block mb-1">Analysis:</Text>
+          <Paragraph className="text-gray-700">
+            <InfoCircleOutlined className="mr-2 text-blue-500" />
             {item.explanation}
-          </Text>
+          </Paragraph>
         </div>
 
-        {/* Redraft Button Section */}
+        {/* Action Buttons Section */}
         {type === 'risky' && (
-          <div className="mt-2">
+          <div className="mt-3 flex justify-end">
             <Button
               type={redraftedClauses.has(item.text) ? "default" : "primary"}
-              size="small"
+              size="middle"
               icon={redraftedClauses.has(item.text) ? <CheckCircleOutlined /> : <EditOutlined />}
               onClick={(e) => {
                 e.stopPropagation();
                 handleRedraftClick(item);
               }}
               loading={isGeneratingRedraft && selectedClause?.text === item.text}
-              className={`w-full sm:w-auto text-xs sm:text-sm ${redraftedClauses.has(item.text) ? "text-green-600 border-green-600" : ""}`}
+              className={`${redraftedClauses.has(item.text) ? "text-green-600 border-green-600" : ""}`}
             >
-              {redraftedClauses.has(item.text) ? 'Redraft Again' : 'Redraft Clause'}
+              {redraftedClauses.has(item.text) ? 'Redraft Again' : 'Suggest Improvements'}
             </Button>
           </div>
         )}
@@ -257,60 +258,77 @@ const ClauseAnalysis = React.memo(({ results, loading }) => {
 
   return (
     <>
-      <div className="p-2 sm:p-4">
-        <Title level={4} className="mb-2 sm:mb-4 text-base sm:text-lg">Document Clause Analysis</Title>
-        <Collapse 
-          defaultActiveKey={['risky']} 
-          className="w-full shadow-sm [&_.ant-collapse-content-box]:p-2 sm:[&_.ant-collapse-content-box]:p-4"
-        >
-          <Panel 
-            header={
-              <div className="flex items-center text-sm sm:text-base">
-                <CheckCircleOutlined className="text-green-500 mr-2" />
-                <span className="font-medium">Acceptable Clauses ({acceptable?.length || 0})</span>
-              </div>
-            } 
-            key="acceptable"
-            className="bg-green-50"
-          >
-            <List
-              dataSource={acceptable}
-              renderItem={item => renderClauseItem(item, 'acceptable')}
-            />
-          </Panel>
+      <div className="p-4">
+        {/* Party Context Banner */}
+        {renderPartyContext()}
 
-          <Panel 
-            header={
-              <div className="flex items-center text-sm sm:text-base">
-                <WarningOutlined className="text-yellow-500 mr-2" />
-                <span className="font-medium">Risky Clauses ({risky?.length || 0})</span>
-              </div>
-            } 
-            key="risky"
-            className="bg-yellow-50"
+        {/* Analysis Content */}
+        <Title level={4} className="mb-4">Clause Analysis</Title>
+        
+        {loading ? (
+          <div className="flex flex-col items-center justify-center p-8">
+            <Spin size="large" />
+            <Text className="mt-4 text-gray-500">Analyzing clauses from {selectedParty?.name}'s perspective...</Text>
+          </div>
+        ) : !results ? (
+          <Empty
+            description="No analysis results available"
+            image={Empty.PRESENTED_IMAGE_SIMPLE}
+          />
+        ) : (
+          <Collapse 
+            defaultActiveKey={['risky']} 
+            className="shadow-sm"
           >
-            <List
-              dataSource={risky}
-              renderItem={item => renderClauseItem(item, 'risky')}
-            />
-          </Panel>
+            <Panel 
+              header={
+                <div className="flex items-center">
+                  <CheckCircleOutlined className="text-green-500 mr-2" />
+                  <span className="font-medium">Favorable Clauses ({acceptable?.length || 0})</span>
+                </div>
+              } 
+              key="acceptable"
+              className="bg-green-50"
+            >
+              <List
+                dataSource={acceptable}
+                renderItem={item => renderClauseItem(item, 'acceptable')}
+              />
+            </Panel>
 
-          <Panel 
-            header={
-              <div className="flex items-center text-sm sm:text-base">
-                <ExclamationCircleOutlined className="text-red-500 mr-2" />
-                <span className="font-medium">Missing Clauses ({missing?.length || 0})</span>
-              </div>
-            } 
-            key="missing"
-            className="bg-red-50"
-          >
-            <List
-              dataSource={missing}
-              renderItem={item => renderClauseItem(item, 'missing')}
-            />
-          </Panel>
-        </Collapse>
+            <Panel 
+              header={
+                <div className="flex items-center">
+                  <WarningOutlined className="text-yellow-500 mr-2" />
+                  <span className="font-medium">Clauses Needing Review ({risky?.length || 0})</span>
+                </div>
+              } 
+              key="risky"
+              className="bg-yellow-50"
+            >
+              <List
+                dataSource={risky}
+                renderItem={item => renderClauseItem(item, 'risky')}
+              />
+            </Panel>
+
+            <Panel 
+              header={
+                <div className="flex items-center">
+                  <ExclamationCircleOutlined className="text-red-500 mr-2" />
+                  <span className="font-medium">Missing Protections ({missing?.length || 0})</span>
+                </div>
+              } 
+              key="missing"
+              className="bg-red-50"
+            >
+              <List
+                dataSource={missing}
+                renderItem={item => renderClauseItem(item, 'missing')}
+              />
+            </Panel>
+          </Collapse>
+        )}
       </div>
 
       <Modal

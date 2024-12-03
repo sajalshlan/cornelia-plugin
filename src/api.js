@@ -99,7 +99,7 @@ const api = axios.create({
   timeout: 180000,
   headers: {
     'Content-Type': 'application/json',
-    'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzMzMjYyMzc1LCJpYXQiOjE3MzMxNTQzNzUsImp0aSI6IjQzMzJhY2YwMjNkOTQ5OWY5M2NiYWIwZDRjNzI3Yzg4IiwidXNlcl9pZCI6M30.bhqBhkvvKCOOE18XqxbsysEJgi1ZOWM8p51Y0l_IvPk'
+    'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzMzMzQ2NjI5LCJpYXQiOjE3MzMyMzg2MjksImp0aSI6IjBhZTdiOTdkMzY5MzQ1NzE5MzkxYzZhMGY5Njc4ZDQ3IiwidXNlcl9pZCI6M30.ENvDh-QR2L0O0p0yZI_rC-20Mn3sXJpGLE-PoPmbqaU'
   },
 });
 
@@ -217,17 +217,39 @@ export const redraftComment = async (comment, documentContent, selectedText, ins
   }
 };
 
-export const analyzeDocumentClauses = async (text) => {
+export const analyzeDocumentClauses = async (text, partyInfo = null) => {
   try {
+    
     const response = await api.post('/analyze_clauses/', {
-      text: text
+      text: text,
+      partyInfo: partyInfo ? {
+        name: partyInfo.name,
+        role: partyInfo.role
+      } : null
     });
-    return response.data.success ? response.data.result : null;
+
+    if (response.data.success) {
+      logger.info('Clause analysis completed successfully');
+      return response.data.result;
+    } else {
+      logger.warn('Clause analysis returned without success flag');
+      return null;
+    }
   } catch (error) {
     logger.error('Error in clause analysis:', error);
     throw error;
   }
 };
+
+// You might also want to add a type definition for better code completion
+/**
+ * Analyzes document clauses from a specific party's perspective
+ * @param {string} text - The document text to analyze
+ * @param {Object} [partyInfo] - Information about the selected party
+ * @param {string} partyInfo.name - The name of the party
+ * @param {string} partyInfo.role - The role of the party in the document
+ * @returns {Promise<Object>} The analysis results
+ */
 
 export const analyzeParties = async (text) => {
   try {
