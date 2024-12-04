@@ -574,7 +574,7 @@ const App = () => {
                     {/* Only show analysis results if we have a selected party and analysis is complete */}
                     {selectedParty && clauseAnalysis && !clauseAnalysisLoading && (
                       <>
-                        <div className="flex items-center gap-6 mt-2">
+                        <div className="flex items-center gap-6 mb-4">
                           {/* Acceptable */}
                           <div className="flex items-center gap-2">
                             <CheckCircleOutlined className="text-md text-green-600" />
@@ -603,15 +603,17 @@ const App = () => {
                           </div>
                         </div>
 
-                        {/* View Button */}
-                        <Button
-                          type="primary"
-                          className="!bg-green-600 !hover:bg-green-700 !border-green-600 !text-white text-sm whitespace-nowrap"
-                          icon={<FileSearchOutlined />}
-                          onClick={() => setActiveView('analysis')}
-                        >
-                          View Analysis
-                        </Button>
+                        {/* View Button - Repositioned and restyled */}
+                        <div className="flex justify-end mt-4">
+                          <Button
+                            type="primary"
+                            className="!bg-green-600 !hover:bg-green-700 !border-green-600 !text-white !px-6 !h-9 !text-sm !font-medium"
+                            icon={<FileSearchOutlined className="text-lg" />}
+                            onClick={() => setActiveView('analysis')}
+                          >
+                            View Analysis
+                          </Button>
+                        </div>
                       </>
                     )}
                   </div>

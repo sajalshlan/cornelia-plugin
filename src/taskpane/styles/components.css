@@ -798,3 +798,9 @@
     height: auto;
     object-fit: contain; /* Maintains aspect ratio while fitting container */
   }
+
+  
+  .redraft-review-modal .ant-modal-content {
+    display: flex;
+    flex-direction: column;
+  }

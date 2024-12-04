@@ -178,10 +178,19 @@ const ClauseAnalysis = React.memo(({ results, loading, selectedParty, getTagColo
   const handleRedraftClick = (item) => {
     setSelectedClause({
       ...item,
-      // If this clause has been redrafted before, use its current text
       text: redraftedTexts.get(item.text) || item.text
     });
     setIsRedraftModalVisible(true);
+    setTimeout(() => {
+      redraftTextAreaRef.current?.focus();
+    }, 0);
+  };
+
+  const handleKeyPress = (event) => {
+    if (event.key === 'Enter' && !event.shiftKey) {
+      event.preventDefault();
+      handleRedraft();
+    }
   };
 
   const renderPartyContext = () => {
@@ -397,6 +406,7 @@ const ClauseAnalysis = React.memo(({ results, loading, selectedParty, getTagColo
               rows={5}
               value={redraftContent}
               onChange={e => setRedraftContent(e.target.value)}
+              onKeyPress={handleKeyPress}
               placeholder="Give instructions for redrafting this clause..."
               className="redraft-textarea"
             />
@@ -409,15 +419,34 @@ const ClauseAnalysis = React.memo(({ results, loading, selectedParty, getTagColo
           title="Review Redrafted Clause"
           open={true}
           onCancel={handleRejectRedraft}
-          footer={
-            <div className="flex justify-end space-x-3">
-              <Button 
-                key="reject" 
+          footer={null}
+          width={600}
+          className="redraft-review-modal"
+        >
+          <div className="flex flex-col h-full max-h-[70vh]">
+            {/* Scrollable content area */}
+            <div className="flex-1 overflow-y-auto pr-2">
+              <div className="mb-4 p-3 bg-gray-50 rounded">
+                <Text strong>Original:</Text>
+                <div className="mt-2 whitespace-pre-wrap">{generatedRedraft.clause.text}</div>
+              </div>
+              <div className="p-3 border-l-4 border-green-400">
+                <Text strong>Redrafted Version:</Text>
+                <div className="mt-2 whitespace-pre-wrap">{generatedRedraft.text}</div>
+              </div>
+            </div>
+
+            {/* Fixed footer */}
+            <div className="mt-4 pt-3 border-t border-gray-200 bg-white flex justify-end space-x-3">
+              <Tooltip title="Discard">
+                <Button 
+                  key="reject" 
                 icon={<CloseCircleOutlined />} 
-                onClick={handleRejectRedraft}
-              >
-                Discard
-              </Button>
+                  onClick={handleRejectRedraft}
+                  style={{ borderColor: '#f00', color: '#f00' }}
+                >
+                </Button>
+              </Tooltip>
               <Button 
                 key="regenerate" 
                 icon={<SyncOutlined />} 
@@ -434,16 +463,6 @@ const ClauseAnalysis = React.memo(({ results, loading, selectedParty, getTagColo
                 Accept Changes
               </Button>
             </div>
-          }
-          width={600}
-        >
-          <div className="mb-4 p-3 bg-gray-50 rounded">
-            <Text strong>Original:</Text>
-            <div className="mt-2">{generatedRedraft.clause.text}</div>
-          </div>
-          <div className="p-3 border-l-4 border-green-400">
-            <Text strong>Redrafted Version:</Text>
-            <div className="mt-2">{generatedRedraft.text}</div>
           </div>
         </Modal>
       )}
