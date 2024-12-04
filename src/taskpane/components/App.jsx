@@ -569,52 +569,50 @@ const App = () => {
                           />
                         )
                       )}
+
+                      {/* Show View Analysis button if we have analysis results */}
+                      {selectedParty && clauseAnalysis && !clauseAnalysisLoading && (
+                        <Button
+                          type="primary"
+                          className="!bg-green-600 !hover:bg-green-700 !border-green-600 !text-white !px-6 !h-9 !text-sm !font-medium"
+                          icon={<FileSearchOutlined className="text-lg" />}
+                          onClick={() => setActiveView('analysis')}
+                        >
+                          View Analysis
+                        </Button>
+                      )}
                     </div>
                     
-                    {/* Only show analysis results if we have a selected party and analysis is complete */}
+                    {/* Show analysis counts */}
                     {selectedParty && clauseAnalysis && !clauseAnalysisLoading && (
-                      <>
-                        <div className="flex items-center gap-6 mb-4">
-                          {/* Acceptable */}
-                          <div className="flex items-center gap-2">
-                            <CheckCircleOutlined className="text-md text-green-600" />
-                            <div>
-                              <span className="text-lg font-semibold text-green-600">{clauseAnalysisCounts.acceptable}</span>
-                              <div className="text-sm text-green-600">Acceptable</div>
-                            </div>
-                          </div>
-
-                          {/* Risky */}
-                          <div className="flex items-center gap-2">
-                            <WarningOutlined className="text-md text-yellow-600" />
-                            <div>
-                              <span className="text-lg font-semibold text-yellow-600">{clauseAnalysisCounts.risky}</span>
-                              <div className="text-sm text-yellow-600">Risky</div>
-                            </div>
-                          </div>
-
-                          {/* Missing */}
-                          <div className="flex items-center gap-2">
-                            <ExclamationCircleOutlined className="text-md text-red-600" />
-                            <div>
-                              <span className="text-lg font-semibold text-red-600">{clauseAnalysisCounts.missing}</span>
-                              <div className="text-sm text-red-600">Missing</div>
-                            </div>
+                      <div className="flex items-center gap-6 mb-4">
+                        {/* Acceptable */}
+                        <div className="flex items-center gap-2">
+                          <CheckCircleOutlined className="text-md text-green-600" />
+                          <div>
+                            <span className="text-lg font-semibold text-green-600">{clauseAnalysisCounts.acceptable}</span>
+                            <div className="text-sm text-green-600">Acceptable</div>
                           </div>
                         </div>
 
-                        {/* View Button - Repositioned and restyled */}
-                        <div className="flex justify-end mt-4">
-                          <Button
-                            type="primary"
-                            className="!bg-green-600 !hover:bg-green-700 !border-green-600 !text-white !px-6 !h-9 !text-sm !font-medium"
-                            icon={<FileSearchOutlined className="text-lg" />}
-                            onClick={() => setActiveView('analysis')}
-                          >
-                            View Analysis
-                          </Button>
+                        {/* Risky */}
+                        <div className="flex items-center gap-2">
+                          <WarningOutlined className="text-md text-yellow-600" />
+                          <div>
+                            <span className="text-lg font-semibold text-yellow-600">{clauseAnalysisCounts.risky}</span>
+                            <div className="text-sm text-yellow-600">Review</div>
+                          </div>
                         </div>
-                      </>
+
+                        {/* Missing */}
+                        <div className="flex items-center gap-2">
+                          <ExclamationCircleOutlined className="text-md text-red-600" />
+                          <div>
+                            <span className="text-lg font-semibold text-red-600">{clauseAnalysisCounts.missing}</span>
+                            <div className="text-sm text-red-600">Missing</div>
+                          </div>
+                        </div>
+                      </div>
                     )}
                   </div>
                 </div>
