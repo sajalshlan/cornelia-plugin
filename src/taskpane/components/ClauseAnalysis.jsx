@@ -27,17 +27,10 @@ const ClauseAnalysis = React.memo(({ results, loading, selectedParty, getTagColo
   const [redraftedClauses, setRedraftedClauses] = useState(new Set());
   const [redraftedTexts, setRedraftedTexts] = useState(new Map());
 
-  useEffect(() => {
-    logger.info('ClauseAnalysis received results:', {
-      type: typeof results,
-      value: results
-    });
-  }, [results]);
 
   const parseResults = (resultsString) => {
     try {
       if (typeof resultsString === 'object' && resultsString !== null) {
-        logger.info('Results already an object:', resultsString);
         return resultsString;
       }
       
@@ -47,7 +40,6 @@ const ClauseAnalysis = React.memo(({ results, loading, selectedParty, getTagColo
       }
 
       const parsed = JSON.parse(resultsString);
-      logger.info('Successfully parsed results:', parsed);
       return parsed;
     } catch (error) {
       logger.error('Error parsing analysis results:', {
