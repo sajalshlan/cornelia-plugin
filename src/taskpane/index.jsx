@@ -3,11 +3,14 @@ import ReactDOM from 'react-dom';
 import App from './components/App';
 import './styles/tailwind.css';
 import { ConfigProvider } from 'antd';
+import { AuthProvider } from './contexts/AuthContext';
 
 Office.onReady(() => {
   ReactDOM.render(
     <ConfigProvider>
-      <App />
+      <AuthProvider>
+        <App />
+      </AuthProvider>
     </ConfigProvider>,
     document.getElementById('root')
   );

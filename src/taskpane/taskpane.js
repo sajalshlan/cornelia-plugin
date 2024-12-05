@@ -1,14 +1,11 @@
-/* global Word console */
+import React from 'react';
+import { createRoot } from 'react-dom/client';
+import Root from './components/Root';
 
-export async function insertText(text) {
-  // Write text to the document.
-  try {
-    await Word.run(async (context) => {
-      let body = context.document.body;
-      body.insertParagraph(text, Word.InsertLocation.end);
-      await context.sync();
-    });
-  } catch (error) {
-    console.log("Error: " + error);
-  }
-}
+/* global document, Office, module, require */
+
+Office.onReady(() => {
+  const container = document.getElementById('container');
+  const root = createRoot(container);
+  root.render(<Root />);
+});

@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { getTokens, clearTokens, isTokenExpired } from './taskpane/services/auth';
 
 const BASE_URL = 'https://127.0.0.1:8000/api';
 
@@ -97,11 +98,33 @@ if (createDebugger.enable) {
 const api = axios.create({
   baseURL: BASE_URL,
   timeout: 180000,
-  headers: {
-    'Content-Type': 'application/json',
-    'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzMzNTAwMTA0LCJpYXQiOjE3MzMzOTIxMDQsImp0aSI6ImVkMzU2ZWEyMjA5YjQzYjM4ZWUyOWQ0ZDkyNTEwMDEzIiwidXNlcl9pZCI6M30.atLaUhwbIiRpnfRQz8le09zuUQb6nzIRn5ch2aXJu54'
-  },
 });
+
+// Request interceptor
+api.interceptors.request.use(async (config) => {
+  const tokens = getTokens();
+  if (tokens) {
+    if (isTokenExpired(tokens.access)) {
+      clearTokens();
+      window.location.reload();
+      return Promise.reject('Session expired');
+    }
+    config.headers.Authorization = `Bearer ${tokens.access}`;
+  }
+  return config;
+});
+
+// Response interceptor
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      clearTokens();
+      window.location.reload();
+    }
+    return Promise.reject(error);
+  }
+);
 
 // Debug interceptor
 // api.interceptors.request.use(request => {

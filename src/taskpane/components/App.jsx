@@ -1,4 +1,6 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
+import { AuthProvider, useAuth } from '../contexts/AuthContext';
+import Login from './Login';
 import { Layout, Button, Space, Spin, Typography, Select, Radio, Card, Tag, message } from 'antd';
 import { 
   FileSearchOutlined, 
@@ -22,7 +24,23 @@ const { Text } = Typography;
 
 const { Content } = Layout;
 
-const App = () => {
+const AppContent = () => {
+  const { isAuthenticated, isLoading, logout } = useAuth();
+
+  // Add logout handler
+  const handleLogout = () => {
+    logout();
+    message.success('Successfully logged out');
+  };
+
+  if (isLoading) {
+    return <div>Loading...</div>;
+  }
+
+  if (!isAuthenticated) {
+    return <Login />;
+  }
+
   const [activeView, setActiveView] = useState(null);
   const [documentContent, setDocumentContent] = useState('');
   const [summary, setSummary] = useState('');
@@ -665,8 +683,18 @@ const App = () => {
   };
 
   return (
-    <Layout className="h-screen">
-      {renderHeader()}
+    <Layout className="min-h-screen">
+      <div className="flex justify-between items-center p-4 bg-white border-b">
+        <Text strong className="text-lg">Cornelia</Text>
+        <Button 
+          onClick={handleLogout}
+          type="link" 
+          danger
+          className="hover:text-red-600"
+        >
+          Logout
+        </Button>
+      </div>
       <Content className="flex-1 overflow-auto bg-gray-100">
         {activeView === 'comments' ? (
           <CommentList 
@@ -680,6 +708,14 @@ const App = () => {
         )}
       </Content>
     </Layout>
+  );
+};
+
+const App = () => {
+  return (
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
   );
 };
 
