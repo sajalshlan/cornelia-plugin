@@ -164,7 +164,7 @@ const App = () => {
         // [Existing comment processing code]
         // Load all properties for comments including replies and resolved status
         docComments.items.forEach(comment => {
-          comment.load(["id", "authorName", "text", "created", "replies", "resolved"]);
+          comment.load(["id", "authorName", "content", "creationDate", "replies", "resolved"]);
         });
         await context.sync();
 
@@ -174,13 +174,28 @@ const App = () => {
           author: comment.authorName || 'Unknown Author',
           authorEmail: comment.authorEmail || '',
           resolved: comment.resolved || false,
-          date: comment.created ? new Date(comment.created).toISOString() : new Date().toISOString
-          (),
+          date: comment.creationDate ? new Intl.DateTimeFormat('en-US', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            timeZoneName: 'short'
+          }).format(new Date(comment.creationDate)) : new Date().toLocaleString(),
           replies: comment.replies ? comment.replies.items.map(reply => ({
             id: reply.id,
             content: reply.content || '',
             author: reply.authorName || 'Unknown Author',
-            date: reply.created ? new Date(reply.created).toISOString() : new Date().toISOString(),
+            date: reply.creationDate ? new Intl.DateTimeFormat('en-US', {
+              year: 'numeric',
+              month: 'long',
+              day: 'numeric',
+              hour: '2-digit',
+              minute: '2-digit',
+              second: '2-digit',
+              timeZoneName: 'short'
+            }).format(new Date(reply.creationDate)) : new Date().toLocaleString(),
           })) : []
         }));
 
@@ -318,6 +333,16 @@ const App = () => {
     }
   };
 
+  const handleChangeParty = useCallback(() => {
+    setClauseAnalysis(null);
+    setSelectedParty(null);
+    setClauseAnalysisCounts({
+      acceptable: 0,
+      risky: 0,
+      missing: 0
+    });
+  }, []);
+
   const renderHeader = () => {
     if (activeView) {
       return (
@@ -390,6 +415,7 @@ const App = () => {
                 loading={clauseAnalysisLoading}
                 selectedParty={selectedParty}
                 getTagColor={getTagColor}
+                onChangeParty={handleChangeParty}
               />
             )}
           </div>

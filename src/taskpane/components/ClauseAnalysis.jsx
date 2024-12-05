@@ -17,7 +17,13 @@ const { Panel } = Collapse;
 const { Text, Title, Paragraph } = Typography;
 const { TextArea } = Input;
 
-const ClauseAnalysis = React.memo(({ results, loading, selectedParty, getTagColor }) => {
+const ClauseAnalysis = React.memo(({ 
+  results, 
+  loading, 
+  selectedParty, 
+  getTagColor,
+  onChangeParty
+}) => {
   const [isRedraftModalVisible, setIsRedraftModalVisible] = useState(false);
   const [redraftContent, setRedraftContent] = useState('');
   const [selectedClause, setSelectedClause] = useState(null);
@@ -198,9 +204,18 @@ const ClauseAnalysis = React.memo(({ results, loading, selectedParty, getTagColo
     
     return (
       <div className="mb-4 p-4 bg-blue-50 rounded-lg border border-blue-100">
-        <div className="flex items-center gap-2 mb-2">
-          <UserOutlined className="text-blue-500" />
-          <Text strong>Analyzing from perspective of:</Text>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <UserOutlined className="text-blue-500" />
+            <Text strong>Analyzing from perspective of:</Text>
+          </div>
+          <Button 
+            type="link" 
+            onClick={onChangeParty}
+            className="text-blue-600 hover:text-blue-800"
+          >
+            Change Party
+          </Button>
         </div>
         <div className="ml-6">
           <Text className="block">{selectedParty.name}</Text>
@@ -303,7 +318,7 @@ const ClauseAnalysis = React.memo(({ results, loading, selectedParty, getTagColo
         {loading ? (
           <div className="flex flex-col items-center justify-center p-8">
             <Spin size="large" />
-            <Text className="mt-4 text-gray-500">Analyzing clauses from {selectedParty?.name}'s perspective...</Text>
+            <Text className="text-gray-500">Analyzing clauses from {selectedParty?.name}'s perspective...</Text>
           </div>
         ) : !results ? (
           <Empty
