@@ -162,7 +162,7 @@ const CommentList = React.memo(({ comments, setComments, initialResolvedComments
           </div>
         </div>
         <div className="comment-controls">
-          <Tooltip title={isResolved ? "Unresolve Comment" : "Mark as Resolved"}>
+          {/* <Tooltip title={isResolved ? "Unresolve Comment" : "Mark as Resolved"}>
             <Button
               type="text"
               size="small"
@@ -170,7 +170,18 @@ const CommentList = React.memo(({ comments, setComments, initialResolvedComments
               className={`resolve-btn ${isResolved ? 'text-green-600' : ''}`}
               onClick={() => isResolved ? handleUnresolveComment(comment.id) : handleResolveComment(comment.id)}
             />
-          </Tooltip>
+          </Tooltip> */}
+          {!isResolved && (
+            <Tooltip title="Mark as Resolved">
+              <Button
+                type="text"
+                size="small"
+                icon={<CheckCircleOutlined />}
+                className="resolve-btn"
+                onClick={() => handleResolveComment(comment.id)}
+              />
+            </Tooltip>
+          )}
         </div>
       </div>
 
