@@ -683,9 +683,25 @@ const AppContent = () => {
   };
 
   return (
-    <Layout className="min-h-screen">
+    <Layout className="h-screen">
       <div className="flex justify-between items-center p-4 bg-white border-b">
-        <Text strong className="text-lg">Cornelia</Text>
+        <div className="flex items-center gap-3">
+          {(activeView === 'chat' || activeView === 'analysis') && (
+            <Button
+              onClick={() => setActiveView('home')}
+              type="text"
+              className="flex items-center !p-2 hover:bg-gray-50 rounded-full"
+              icon={<ArrowLeftOutlined />}
+            />
+          )}
+          <Text strong className="text-lg">
+            {activeView === 'chat' 
+              ? 'Chat with Cornelia' 
+              : activeView === 'analysis' 
+                ? 'Clause Analysis' 
+                : 'Cornelia'}
+          </Text>
+        </div>
         <Button 
           onClick={handleLogout}
           type="link" 
