@@ -239,7 +239,7 @@ const ClauseAnalysis = React.memo(({
   const renderClauseItem = (item, type) => (
     <List.Item 
       className={`bg-white mb-3 rounded-lg shadow-sm hover:shadow-md transition-all duration-200 border
-        ${type === 'acceptable' ? 'border-green-100/50' : type === 'risky' ? 'border-yellow-100/50' : 'border-red-100/50'}
+        ${type === 'acceptable' ? 'border-blue-100/50' : type === 'risky' ? 'border-yellow-100/50' : 'border-red-100/50'}
         first:mt-0 last:mb-0`}
     >
       <div className="w-full px-4 py-3">
@@ -253,7 +253,7 @@ const ClauseAnalysis = React.memo(({
               type="link" 
               size="small"
               className={`
-                ${type === 'acceptable' ? 'text-green-600 hover:text-green-700' : 
+                ${type === 'acceptable' ? 'text-blue-600 hover:text-blue-700' : 
                   type === 'risky' ? 'text-yellow-600 hover:text-yellow-700' : 
                   'text-red-600 hover:text-red-700'}
               `}
@@ -261,6 +261,7 @@ const ClauseAnalysis = React.memo(({
                 e.stopPropagation();
                 scrollToClause(item.text);
               }}
+              icon={type === 'acceptable' ? <CheckCircleOutlined /> : type === 'risky' ? <WarningOutlined /> : <ExclamationCircleOutlined />}
             >
               Go to clause →
             </Button>
@@ -272,11 +273,9 @@ const ClauseAnalysis = React.memo(({
           {/* Clause Text */}
           {type !== 'missing' && (
             <div className={`rounded-md p-2.5 text-gray-700 text-sm
-              ${type === 'acceptable' ? 'bg-green-50/50' : 'bg-yellow-50/50'}`}
+              ${type === 'acceptable' ? 'bg-blue-50/50' : 'bg-yellow-50/50'}`}
             >
-              <div className="line-clamp-2">
-                {item.text}
-              </div>
+              {item.text}
             </div>
           )}
 
@@ -284,15 +283,13 @@ const ClauseAnalysis = React.memo(({
           <div className="bg-gray-50/70 rounded-md p-2.5 text-gray-600 text-sm">
             <div className="text-xs text-gray-500 mb-1 font-medium flex items-center">
               <InfoCircleOutlined className={`mr-1.5 
-                ${type === 'acceptable' ? 'text-green-500' : 
+                ${type === 'acceptable' ? 'text-blue-500' : 
                   type === 'risky' ? 'text-yellow-500' : 
                   'text-red-500'}`} 
               />
               Analysis:
             </div>
-            <div className="line-clamp-2">
-              {item.explanation}
-            </div>
+            {item.explanation}
           </div>
 
           {/* Action Buttons Section */}
@@ -397,78 +394,71 @@ const ClauseAnalysis = React.memo(({
               <Panel 
                 header={
                   <div className="flex items-center">
-                    <CheckCircleOutlined className="text-emerald-500 mr-2 text-lg" />
-                    <span className="font-semibold text-emerald-700">
+                    <EditOutlined className="text-green-500 mr-2 text-lg" />
+                    <span className="font-semibold text-green-700">
                       Redrafted Clauses ({redraftedClauses.size})
                     </span>
                   </div>
                 } 
                 key="redrafted"
-                className="bg-emerald-50/50 border-emerald-100 rounded-md overflow-hidden"
+                className="bg-green-50/50 border-green-100 rounded-md overflow-hidden"
               >
                 <List
                   dataSource={[...acceptable, ...risky, ...missing].filter(item => redraftedClauses.has(item.text))}
                   renderItem={item => (
                     <List.Item 
-                      className="bg-white mb-3 rounded-lg shadow-sm hover:shadow-md transition-all duration-200 border border-emerald-100/50
+                      className="bg-white mb-3 rounded-lg shadow-sm hover:shadow-md transition-all duration-200 border border-green-100/50
                         first:mt-0 last:mb-0"
                     >
                       <div className="w-full px-4 py-3">
-                        {/* Header Section */}
                         <div className="flex items-center justify-between mb-2.5">
                           <Text strong className="text-gray-800 text-base">
                             {item.title}
                           </Text>
-                          <Tag color="success" icon={<CheckCircleOutlined />} className="rounded-full">
-                            Redrafted
-                          </Tag>
+                          <Button 
+                            type="link" 
+                            size="small"
+                            className="text-green-600 hover:text-green-700"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              const redraftedText = redraftedTexts.get(item.text);
+                              logger.info("Attempting to scroll to redrafted text:", {
+                                redraftedText: redraftedText?.substring(0, 100),
+                                originalText: item.text?.substring(0, 100),
+                                hasRedraft: !!redraftedText,
+                                textLength: redraftedText?.length
+                              });
+                              
+                              if (!redraftedText) {
+                                message.warning('Redrafted text not found');
+                                return;
+                              }
+                              
+                              scrollToClause(redraftedText);
+                            }}
+                            icon={<CheckCircleOutlined />}
+                          >
+                            Go to clause →
+                          </Button>
                         </div>
                         
-                        {/* Content Grid */}
                         <div className="grid grid-cols-1 gap-2">
-                          {/* Original Text */}
                           <div className="bg-gray-50/70 rounded-md p-2.5 text-gray-600 text-sm">
                             <div className="text-xs text-gray-500 mb-1 font-medium">Original:</div>
-                            <div className="line-clamp-2">
-                              {item.text}
-                            </div>
+                            {item.text}
                           </div>
 
-                          {/* Redrafted Text */}
-                          <div className="bg-emerald-50/50 rounded-md p-2.5 text-gray-700 text-sm relative group">
-                            <div className="text-xs text-emerald-600 mb-1 font-medium">Redrafted:</div>
-                            <div className="line-clamp-2">
-                              {redraftedTexts.get(item.text)}
-                            </div>
-                            <Button 
-                              type="link" 
-                              size="small"
-                              className="absolute right-2 top-2 text-emerald-600 hover:text-emerald-700 opacity-0 group-hover:opacity-100 transition-opacity"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                const redraftedText = redraftedTexts.get(item.text);
-                                
-                                if (!redraftedText) {
-                                  message.warning('Redrafted text not found');
-                                  return;
-                                }
-                                
-                                scrollToClause(redraftedText);
-                              }}
-                            >
-                              Go to clause →
-                            </Button>
+                          <div className="bg-green-50/50 rounded-md p-2.5 text-gray-700 text-sm">
+                            <div className="text-xs text-green-600 mb-1 font-medium">Redrafted:</div>
+                            {redraftedTexts.get(item.text)}
                           </div>
 
-                          {/* Analysis - Only show on hover or expand */}
                           <div className="bg-gray-50/70 rounded-md p-2.5 text-gray-600 text-sm">
                             <div className="text-xs text-gray-500 mb-1 font-medium flex items-center">
-                              <InfoCircleOutlined className="mr-1.5 text-emerald-500" />
+                              <InfoCircleOutlined className="mr-1.5 text-green-500" />
                               Analysis:
                             </div>
-                            <div className="line-clamp-2">
-                              {item.explanation}
-                            </div>
+                            {item.explanation}
                           </div>
                         </div>
                       </div>
@@ -478,18 +468,18 @@ const ClauseAnalysis = React.memo(({
               </Panel>
             )}
 
-            {/* Existing Panels - but filter out redrafted clauses */}
+            {/* Favorable Clauses Panel */}
             <Panel 
               header={
                 <div className="flex items-center">
-                  <CheckCircleOutlined className="text-green-500 mr-2 text-lg" />
-                  <span className="font-semibold text-green-700">
+                  <CheckCircleOutlined className="text-blue-500 mr-2 text-lg" />
+                  <span className="font-semibold text-blue-700">
                     Favorable Clauses ({acceptable.filter(item => !redraftedClauses.has(item.text)).length})
                   </span>
                 </div>
               } 
               key="acceptable"
-              className="bg-green-50/50 border-green-100 rounded-md overflow-hidden"
+              className="bg-blue-50/50 border-blue-100 rounded-md overflow-hidden"
             >
               <List
                 dataSource={acceptable.filter(item => !redraftedClauses.has(item.text))}
