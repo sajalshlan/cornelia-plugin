@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { AuthProvider, useAuth } from '../contexts/AuthContext';
 import Login from './Login';
-import { Layout, Button, Space, Spin, Typography, Select, Radio, Card, Tag, message } from 'antd';
+import { Layout, Button, Space, Spin, Typography, Select, Radio, Card, Tag, message, Modal } from 'antd';
 import { 
   FileSearchOutlined, 
   CommentOutlined, 
@@ -9,14 +9,17 @@ import {
   ArrowLeftOutlined, 
   CheckCircleOutlined, 
   WarningOutlined, 
-  ExclamationCircleOutlined 
+  ExclamationCircleOutlined,
+  EditOutlined,
+  InfoCircleOutlined,
+  CloseOutlined
 } from '@ant-design/icons';
 import DocumentSummary from './DocumentSummary';
 import CommentList from './CommentList';
 import ChatWindow from './ChatWindow';
 import { logger } from '../../api';
 import '../styles/components.css';
-import { performAnalysis } from '../../api';
+import { performAnalysis, explainText } from '../../api';
 import ClauseAnalysis from './ClauseAnalysis';
 import { analyzeDocumentClauses } from '../../api';
 import { analyzeParties } from '../../api';
@@ -81,6 +84,13 @@ const AppContent = () => {
   const [redraftedClauses, setRedraftedClauses] = useState(new Set());
   const [redraftedTexts, setRedraftedTexts] = useState(new Map());
   const [redraftReviewStates, setRedraftReviewStates] = useState(new Map());
+
+  // Add new state near other state declarations
+  const [selectedText, setSelectedText] = useState('');
+
+  // Add new state variables
+  const [isExplaining, setIsExplaining] = useState(false);
+  const [explanation, setExplanation] = useState(null);
 
   const HARDCODED_ANALYSIS = {
     "acceptable": [
@@ -455,25 +465,65 @@ const AppContent = () => {
     });
   }, []);
 
-  const renderHeader = () => {
-    if (activeView) {
-      return (
-        <div className="flex items-center mb-4 p-4 border-b">
-          <Button 
-            icon={<ArrowLeftOutlined />} 
-            onClick={() => setActiveView(null)}
-            className="mr-4"
-          />
-          <h2 className="m-0 text-lg font-medium">
-            {activeView === 'summary' && 'Document Summary'}
-            {activeView === 'comments' && 'Document Comments'}
-            {activeView === 'chat' && 'Ask Cornelia'}
-            {activeView === 'analysis' && 'Clause Analysis'}
-          </h2>
-        </div>
-      );
+  // Add new function to handle text selection
+  const handleTextSelection = useCallback(async () => {
+    try {
+      await Word.run(async (context) => {
+        const selection = context.document.getSelection();
+        selection.load('text');
+        await context.sync();
+        setSelectedText(selection.text.trim());
+      });
+    } catch (error) {
+      logger.error('Error getting selected text:', error);
+      setSelectedText('');
     }
-    return null;
+  }, []);
+
+  // Add useEffect to listen for selection changes
+  useEffect(() => {
+    const handleSelectionChange = () => {
+      handleTextSelection();
+    };
+
+    // Add event listener when component mounts
+    Office.context.document.addHandlerAsync(
+      Office.EventType.DocumentSelectionChanged,
+      handleSelectionChange
+    );
+
+    // Remove event listener when component unmounts
+    return () => {
+      Office.context.document.removeHandlerAsync(
+        Office.EventType.DocumentSelectionChanged,
+        handleSelectionChange
+      );
+    };
+  }, [handleTextSelection]);
+
+  // Update the handleExplain function
+  const handleExplain = async () => {
+    if (!selectedText || !documentContent) return;
+
+    setIsExplaining(true);
+    try {
+      const result = await explainText(selectedText, documentContent);
+      
+      if (result) {
+        setExplanation({
+          text: selectedText,
+          explanation: result,
+          timestamp: new Date().toISOString()
+        });
+      } else {
+        message.error('Failed to get explanation');
+      }
+    } catch (error) {
+      logger.error('Error in explain text:', error);
+      message.error('Failed to get explanation: ' + (error.response?.data?.error || error.message));
+    } finally {
+      setIsExplaining(false);
+    }
   };
 
   const renderContent = () => {
@@ -598,6 +648,70 @@ const AppContent = () => {
                 </div>
               </div>
             </div>
+
+            {/* Actions Panel Card */}
+            <div className="px-4">
+              <div className="bg-white rounded-xl shadow-sm p-4 border border-gray-100 hover:border-blue-400 hover:shadow-md transition-all duration-200">
+                <div className="flex items-center gap-3">
+                  <Button
+                    type="default"
+                    icon={<CommentOutlined />}
+                    className="flex items-center gap-2 !px-4 !h-9"
+                    disabled={!selectedText}
+                    onClick={() => {/* Handle comment action */}}
+                  >
+                    Comment
+                  </Button>
+                  <Button
+                    type="default"
+                    icon={<InfoCircleOutlined />}
+                    className="flex items-center gap-2 !px-4 !h-9"
+                    disabled={!selectedText}
+                    loading={isExplaining}
+                    onClick={handleExplain}
+                  >
+                    {isExplaining ? 'Explaining...' : 'Explain'}
+                  </Button>
+                  <Button
+                    type="default"
+                    icon={<EditOutlined />}
+                    className="flex items-center gap-2 !px-4 !h-9"
+                    disabled={!selectedText}
+                    onClick={() => {/* Handle redraft action */}}
+                  >
+                    Redraft
+                  </Button>
+                </div>
+              </div>
+            </div>
+
+            {/* Explanation Panel */}
+            {explanation && (
+              <div className="px-4 mt-2">
+                <div className="bg-gray-50 rounded-xl shadow-sm p-4 border border-gray-100">
+                  <div className="flex flex-col gap-2">
+                    <div className="flex items-center justify-between">
+                      <Text type="secondary" className="text-xs">
+                        Explanation
+                      </Text>
+                      <Button 
+                        type="text" 
+                        size="small"
+                        className="!text-gray-400 hover:!text-gray-600"
+                        icon={<CloseOutlined />}
+                        onClick={() => setExplanation(null)}
+                      />
+                    </div>
+                    <div className="bg-white rounded p-3 border border-gray-100">
+                      <div className="mt-1 text-sm border-l-2 border-green-400 pl-3">
+                        {explanation.explanation}
+                      </div>
+                    </div>
+
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Analysis Card */}
             <div className="px-4">

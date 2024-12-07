@@ -261,7 +261,6 @@ const ClauseAnalysis = React.memo(({
                 e.stopPropagation();
                 scrollToClause(item.text);
               }}
-              icon={type === 'acceptable' ? <CheckCircleOutlined /> : type === 'risky' ? <WarningOutlined /> : <ExclamationCircleOutlined />}
             >
               Go to clause →
             </Button>

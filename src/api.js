@@ -286,4 +286,23 @@ export const analyzeParties = async (text) => {
   }
 };
 
+export const explainText = async (selectedText, contextText) => {
+  try {
+    const response = await api.post('/explain_text/', {
+      selectedText,
+      contextText
+    });
+
+    if (response.data && response.data) {
+      return response.data;
+    } else {
+      logger.error('Invalid response format:', response.data);
+      throw new Error('Invalid response format from server');
+    }
+  } catch (error) {
+    logger.error('Error in explain text:', error);
+    throw error;
+  }
+};
+
 export default api;
