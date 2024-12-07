@@ -70,7 +70,6 @@ const ClauseAnalysis = React.memo(({
   const missing = parsedResults?.missing || [];
 
   const scrollToClause = async (clauseText) => {
-    logger.info("scroll called", clauseText)
     try {
       await Word.run(async (context) => {
         // Take first 255 characters of the clause text to stay within Word's search limits
@@ -388,7 +387,7 @@ const ClauseAnalysis = React.memo(({
           />
         ) : (
           <Collapse 
-            defaultActiveKey={['risky', 'redrafted']} 
+            defaultActiveKey={['risky']} 
             className="shadow-sm"
           >
             {/* Redrafted Clauses Panel */}
