@@ -70,6 +70,7 @@ const ClauseAnalysis = React.memo(({
   const missing = parsedResults?.missing || [];
 
   const scrollToClause = async (clauseText) => {
+    logger.info("scroll called", clauseText)
     try {
       await Word.run(async (context) => {
         // Take first 255 characters of the clause text to stay within Word's search limits
@@ -387,21 +388,97 @@ const ClauseAnalysis = React.memo(({
           />
         ) : (
           <Collapse 
-            defaultActiveKey={['risky']} 
+            defaultActiveKey={['risky', 'redrafted']} 
             className="shadow-sm"
           >
+            {/* Redrafted Clauses Panel */}
+            {redraftedClauses.size > 0 && (
+              <Panel 
+                header={
+                  <div className="flex items-center">
+                    <CheckCircleOutlined className="text-blue-500 mr-2" />
+                    <span className="font-medium">Redrafted Clauses ({redraftedClauses.size})</span>
+                  </div>
+                } 
+                key="redrafted"
+                className="bg-blue-50"
+              >
+                <List
+                  dataSource={[...acceptable, ...risky, ...missing].filter(item => redraftedClauses.has(item.text))}
+                  renderItem={item => (
+                    <List.Item 
+                      className="bg-white rounded-lg mb-2 p-4 cursor-pointer hover:shadow-md transition-shadow border-l-4 border-blue-500"
+                    >
+                      <div className="w-full">
+                        {/* Title and Tags Section */}
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3">
+                          <Text strong className="text-lg">{item.title}</Text>
+                          <Tag color="blue" icon={<CheckCircleOutlined />}>
+                            Redrafted
+                          </Tag>
+                        </div>
+                        
+                        {/* Original Text Section */}
+                        <div className="mt-3 bg-gray-50 p-3 rounded-lg text-gray-700">
+                          <Text type="secondary" className="block mb-1">Original:</Text>
+                          <Text>
+                            {item.text.length > 200 
+                              ? `${item.text.substring(0, 200)}...` 
+                              : item.text}
+                          </Text>
+                        </div>
+
+                        {/* Redrafted Text Section */}
+                        <div className="mt-3 bg-blue-50 p-3 rounded-lg text-gray-700">
+                          <Text type="secondary" className="block mb-1">Redrafted:</Text>
+                          <Text>
+                            {(redraftedTexts.get(item.text) || '').length > 200 
+                              ? `${redraftedTexts.get(item.text).substring(0, 200)}...` 
+                              : redraftedTexts.get(item.text)}
+                          </Text>
+                          <Button 
+                            type="link" 
+                            size="small" 
+                            className="ml-2"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              scrollToClause(redraftedTexts.get(item.text));
+                            }}
+                          >
+                            Go to clause →
+                          </Button>
+                        </div>
+
+                        {/* Analysis Section */}
+                        <div className="mt-3 bg-gray-50 p-3 rounded-lg">
+                          <Text type="secondary" className="block mb-1">Analysis:</Text>
+                          <Paragraph className="text-gray-700">
+                            <InfoCircleOutlined className="mr-2 text-blue-500" />
+                            {item.explanation}
+                          </Paragraph>
+                        </div>
+                      </div>
+                    </List.Item>
+                  )}
+                />
+              </Panel>
+            )}
+
+            {/* Existing Panels - but filter out redrafted clauses */}
             <Panel 
               header={
                 <div className="flex items-center">
                   <CheckCircleOutlined className="text-green-500 mr-2" />
-                  <span className="font-medium">Favorable Clauses ({acceptable?.length || 0})</span>
+                  <span className="font-medium">
+                    Favorable Clauses ({acceptable.filter(item => !redraftedClauses.has(item.text)).length})
+                  </span>
                 </div>
               } 
               key="acceptable"
               className="bg-green-50"
             >
               <List
-                dataSource={acceptable}
+                dataSource={acceptable.filter(item => !redraftedClauses.has(item.text))}
                 renderItem={item => renderClauseItem(item, 'acceptable')}
               />
             </Panel>
@@ -410,14 +487,16 @@ const ClauseAnalysis = React.memo(({
               header={
                 <div className="flex items-center">
                   <WarningOutlined className="text-yellow-500 mr-2" />
-                  <span className="font-medium">Clauses Needing Review ({risky?.length || 0})</span>
+                  <span className="font-medium">
+                    Clauses Needing Review ({risky.filter(item => !redraftedClauses.has(item.text)).length})
+                  </span>
                 </div>
               } 
               key="risky"
               className="bg-yellow-50"
             >
               <List
-                dataSource={risky}
+                dataSource={risky.filter(item => !redraftedClauses.has(item.text))}
                 renderItem={item => renderClauseItem(item, 'risky')}
               />
             </Panel>
@@ -426,14 +505,16 @@ const ClauseAnalysis = React.memo(({
               header={
                 <div className="flex items-center">
                   <ExclamationCircleOutlined className="text-red-500 mr-2" />
-                  <span className="font-medium">Missing Protections ({missing?.length || 0})</span>
+                  <span className="font-medium">
+                    Missing Protections ({missing.filter(item => !redraftedClauses.has(item.text)).length})
+                  </span>
                 </div>
               } 
               key="missing"
               className="bg-red-50"
             >
               <List
-                dataSource={missing}
+                dataSource={missing.filter(item => !redraftedClauses.has(item.text))}
                 renderItem={item => renderClauseItem(item, 'missing')}
               />
             </Panel>
