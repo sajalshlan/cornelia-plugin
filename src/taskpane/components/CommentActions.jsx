@@ -201,19 +201,14 @@ const CommentActions = React.memo(({ comment, onCommentUpdate }) => {
             await context.sync();
 
             const targetComment = comments.items.find(c => c.id === comment.id);
-            logger.info('targetComment', targetComment);
             if (!targetComment) {
                 throw new Error('Comment not found');
             }
 
             // Get the comment's range and load its properties
             const contentRange = targetComment.getRange();
-            logger.info('contentRange before load', contentRange);
             contentRange.load(["text", "start", "end"]);
             await context.sync();
-            logger.info('content text after load', contentRange.text);
-            logger.info('content start after load', contentRange.start);
-            logger.info('content end after load', contentRange.end);
 
             // Insert the generated redraft text into the comment's range
             contentRange.insertText(generatedRedraft.text, Word.InsertLocation.replace);

@@ -30,9 +30,10 @@ const ClauseAnalysis = React.memo(({
   const [selectedClause, setSelectedClause] = useState(null);
   const [generatedRedraft, setGeneratedRedraft] = useState(null);
   const redraftTextAreaRef = useRef(null);
-  const [isGeneratingRedraft, setIsGeneratingRedraft] = useState(false);
+  const [generatingRedrafts, setGeneratingRedrafts] = useState(new Map());
   const [redraftedClauses, setRedraftedClauses] = useState(new Set());
   const [redraftedTexts, setRedraftedTexts] = useState(new Map());
+  const [redraftReviewStates, setRedraftReviewStates] = useState(new Map());
 
 
   const parseResults = (resultsString) => {
@@ -97,7 +98,8 @@ const ClauseAnalysis = React.memo(({
     if (!selectedClause) return;
     
     try {
-      setIsGeneratingRedraft(true);
+      // Set loading state for this specific clause
+      setGeneratingRedrafts(prev => new Map(prev).set(selectedClause.text, true));
       setIsRedraftModalVisible(false);
       setRedraftContent('');
       
@@ -116,12 +118,20 @@ const ClauseAnalysis = React.memo(({
       );
 
       if (result) {
-        setGeneratedRedraft({ text: result, clause: selectedClause });
+        // Update redraft review state for this specific clause
+        setRedraftReviewStates(prev => new Map(prev).set(selectedClause.text, {
+          text: result,
+          clause: selectedClause
+        }));
       }
     } catch (error) {
       message.error('Failed to generate redraft: ' + error.message);
     } finally {
-      setIsGeneratingRedraft(false);
+      setGeneratingRedrafts(prev => {
+        const next = new Map(prev);
+        next.delete(selectedClause.text);
+        return next;
+      });
     }
   };
 
@@ -134,19 +144,31 @@ const ClauseAnalysis = React.memo(({
     setGeneratedRedraft(null);
   };
 
-  const handleAcceptRedraft = async () => {
+  const handleAcceptRedraft = async (item) => {
     try {
       await Word.run(async (context) => {
+        // Get the current redraft state for this item
+        const redraftState = redraftReviewStates.get(item.text);
+        if (!redraftState) {
+          throw new Error('No redraft found for this clause');
+        }
+
         // Get the text to search for - either the current redrafted text or the original
-        const searchText = redraftedTexts.get(generatedRedraft.clause.text) || generatedRedraft.clause.text;
+        const searchText = redraftedTexts.get(item.text) || item.text;
         
-        const foundRange = await searchAndReplaceText(context, searchText, generatedRedraft.text);
+        const foundRange = await searchAndReplaceText(context, searchText, redraftState.text);
         if (foundRange) {
           // Update tracking states
-          setRedraftedClauses(prev => new Set([...prev, generatedRedraft.clause.text]));
-          setRedraftedTexts(prev => new Map(prev).set(generatedRedraft.clause.text, generatedRedraft.text));
+          setRedraftedClauses(prev => new Set([...prev, item.text]));
+          setRedraftedTexts(prev => new Map(prev).set(item.text, redraftState.text));
           
-          setGeneratedRedraft(null);
+          // Clear the redraft review state for this item
+          setRedraftReviewStates(prev => {
+            const next = new Map(prev);
+            next.delete(item.text);
+            return next;
+          });
+
           message.success('Text redrafted successfully');
         } else {
           throw new Error('Could not find the text to redraft');
@@ -164,6 +186,14 @@ const ClauseAnalysis = React.memo(({
       text: redraftedTexts.get(item.text) || item.text
     });
     setIsRedraftModalVisible(true);
+    
+    // Clear any existing redraft review state for this item
+    setRedraftReviewStates(prev => {
+      const next = new Map(prev);
+      next.delete(item.text);
+      return next;
+    });
+    
     setTimeout(() => {
       redraftTextAreaRef.current?.focus();
     }, 0);
@@ -263,21 +293,73 @@ const ClauseAnalysis = React.memo(({
 
         {/* Action Buttons Section */}
         {type === 'risky' && (
-          <div className="mt-3 flex justify-end">
-            <Button
-              type={redraftedClauses.has(item.text) ? "default" : "primary"}
-              size="middle"
-              icon={redraftedClauses.has(item.text) ? <CheckCircleOutlined /> : <EditOutlined />}
-              onClick={(e) => {
-                e.stopPropagation();
-                handleRedraftClick(item);
-              }}
-              loading={isGeneratingRedraft && selectedClause?.text === item.text}
-              className={`${redraftedClauses.has(item.text) ? "text-green-600 border-green-600" : ""}`}
-            >
-              {redraftedClauses.has(item.text) ? 'Redraft Again' : 'Suggest Improvements'}
-            </Button>
-          </div>
+          <>
+            <div className="mt-3 flex justify-end">
+              <Button
+                type={redraftedClauses.has(item.text) ? "default" : "primary"}
+                size="middle"
+                icon={redraftedClauses.has(item.text) ? <CheckCircleOutlined /> : <EditOutlined />}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleRedraftClick(item);
+                }}
+                loading={generatingRedrafts.get(item.text)}
+                className={`${redraftedClauses.has(item.text) ? "text-green-600 border-green-600" : ""}`}
+              >
+                {redraftedClauses.has(item.text) ? 'Redraft Again' : 'Suggest Improvements'}
+              </Button>
+            </div>
+
+            {/* Inline Redraft Review Panel */}
+            {redraftReviewStates.get(item.text) && (
+              <div className="mt-4 p-4 bg-white shadow-sm border border-gray-200 rounded-lg">
+                <div className="text-sm text-gray-600 mb-2">AI Generated Redraft:</div>
+                <div className="max-h-[200px] overflow-y-auto mb-4">
+                  <TextArea
+                    value={redraftReviewStates.get(item.text).text}
+                    onChange={e => setRedraftReviewStates(prev => 
+                      new Map(prev).set(item.text, {
+                        ...prev.get(item.text),
+                        text: e.target.value
+                      })
+                    )}
+                    autoSize={{ minRows: 4, maxRows: 12 }}
+                    className="text-base redraft-preview"
+                  />
+                </div>
+                <div className="flex justify-end space-x-2">
+                  <Button 
+                    size="small" 
+                    onClick={() => {
+                      setRedraftReviewStates(prev => {
+                        const next = new Map(prev);
+                        next.delete(item.text);
+                        return next;
+                      });
+                    }}
+                    className="hover:bg-red-600 hover:border-red-600"
+                  >
+                    Reject
+                  </Button>
+                  <Button 
+                    size="small" 
+                    onClick={() => handleRegenerateRedraft(item)}
+                    className="hover:bg-blue-600 hover:border-blue-600"
+                  >
+                    Regenerate
+                  </Button>
+                  <Button 
+                    size="small" 
+                    type="primary" 
+                    onClick={() => handleAcceptRedraft(item)}
+                    className="hover:bg-green-600 hover:border-green-600"
+                  >
+                    Accept Changes
+                  </Button>
+                </div>
+              </div>
+            )}
+          </>
         )}
       </div>
     </List.Item>
@@ -376,7 +458,7 @@ const ClauseAnalysis = React.memo(({
             type="primary"
             icon={<CheckCircleOutlined />}
             onClick={handleRedraft}
-            loading={isGeneratingRedraft}
+            loading={generatingRedrafts.get(selectedClause?.text)}
             className="w-full sm:w-auto"
           >
             Redraft
@@ -405,59 +487,6 @@ const ClauseAnalysis = React.memo(({
           </>
         )}
       </Modal>
-
-      {generatedRedraft && (
-        <Modal
-          title="Review Redrafted Clause"
-          open={true}
-          onCancel={handleRejectRedraft}
-          footer={null}
-          width={600}
-          className="redraft-review-modal"
-        >
-          <div className="flex flex-col h-full max-h-[70vh]">
-            {/* Scrollable content area */}
-            <div className="flex-1 overflow-y-auto pr-2">
-              <div className="mb-4 p-3 bg-gray-50 rounded">
-                <Text strong>Original:</Text>
-                <div className="mt-2 whitespace-pre-wrap">{generatedRedraft.clause.text}</div>
-              </div>
-              <div className="p-3 border-l-4 border-green-400">
-                <Text strong>Redrafted Version:</Text>
-                <div className="mt-2 whitespace-pre-wrap">{generatedRedraft.text}</div>
-              </div>
-            </div>
-
-            {/* Fixed footer */}
-            <div className="mt-4 pt-3 border-t border-gray-200 bg-white flex justify-end space-x-3">
-              <Tooltip title="Discard">
-                <Button 
-                  key="reject" 
-                icon={<CloseCircleOutlined />} 
-                  onClick={handleRejectRedraft}
-                  style={{ borderColor: '#f00', color: '#f00' }}
-                >
-                </Button>
-              </Tooltip>
-              <Button 
-                key="regenerate" 
-                icon={<SyncOutlined />} 
-                onClick={handleRegenerateRedraft}
-              >
-                Regenerate
-              </Button>
-              <Button 
-                key="accept" 
-                type="primary" 
-                icon={<CheckCircleOutlined />} 
-                onClick={handleAcceptRedraft}
-              >
-                Accept Changes
-              </Button>
-            </div>
-          </div>
-        </Modal>
-      )}
     </>
   );
 });
