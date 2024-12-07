@@ -8,56 +8,9 @@ import {
   CaretRightOutlined
 } from '@ant-design/icons';
 import CommentActions from './CommentActions';
-import { logger } from '../../api';
+
 const { Text } = Typography;
 const { Panel } = Collapse;
-
-const searchAndReplaceText = async (context, searchText, replacementText = null) => {
-  // Split search text into chunks of 255 characters
-  const chunks = searchText.match(/.{1,255}/g) || [];
-  
-  // If text is shorter than 255 characters, do a simple search
-  if (chunks.length === 1) {
-    const searchResults = context.document.body.search(searchText);
-    context.load(searchResults);
-    await context.sync();
-    
-    if (searchResults.items.length > 0) {
-      if (replacementText) {
-        searchResults.items[0].insertText(replacementText, Word.InsertLocation.replace);
-      }
-      return searchResults.items[0];
-    }
-    return null;
-  }
-
-  // For longer texts, try to find unique chunk that's still within limits
-  for (let i = 0; i < chunks.length; i++) {
-    const chunk = chunks[i];
-    const searchResults = context.document.body.search(chunk);
-    context.load(searchResults);
-    await context.sync();
-
-    if (searchResults.items.length === 1) {
-      // Found unique chunk
-      const range = searchResults.items[0].getRange();
-      range.expandTo(context.document.body.getRange('Start'));
-      range.expandTo(context.document.body.getRange('End'));
-      context.load(range, 'text');
-      await context.sync();
-
-      // Verify this is our target text
-      if (range.text.includes(searchText)) {
-        if (replacementText) {
-          range.insertText(replacementText, Word.InsertLocation.replace);
-        }
-        return range;
-      }
-    }
-  }
-  
-  return null;
-};
 
 const CommentList = React.memo(({ comments, setComments, initialResolvedComments = [], onCommentUpdate }) => {
   const [resolvedComments, setResolvedComments] = useState([]);
@@ -71,25 +24,22 @@ const CommentList = React.memo(({ comments, setComments, initialResolvedComments
   const navigateToComment = async (commentId) => {
     try {
       await Word.run(async (context) => {
+        // Get all comments in the document
         const docComments = context.document.body.getComments();
         docComments.load("items");
         await context.sync();
-
         const comment = docComments.items.find(c => c.id === commentId);
         
         if (comment) {
+          // Load the comment's content range
           const contentRange = comment.getRange();
           contentRange.load("text");
           await context.sync();
 
-          const foundRange = await searchAndReplaceText(context, contentRange.text);
-          if (foundRange) {
-            foundRange.select();
-            foundRange.scrollIntoView();
-            await context.sync();
-          } else {
-            logger.warn('Comment text not found:', { commentId });
-          }
+          // Select and scroll to the comment's range
+          contentRange.select();
+          contentRange.scrollIntoView();
+          await context.sync();
         } else {
           logger.warn('Comment not found:', { commentId });
         }
