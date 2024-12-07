@@ -1,7 +1,7 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { AuthProvider, useAuth } from '../contexts/AuthContext';
 import Login from './Login';
-import { Layout, Button, Space, Spin, Typography, Select, Radio, Card, Tag, message, Modal } from 'antd';
+import { Layout, Button, Space, Spin, Typography, Select, Radio, Card, Tag, message, Modal, Input } from 'antd';
 import { 
   FileSearchOutlined, 
   CommentOutlined, 
@@ -12,14 +12,16 @@ import {
   ExclamationCircleOutlined,
   EditOutlined,
   InfoCircleOutlined,
-  CloseOutlined
+  CloseOutlined,
+  RedoOutlined,
+  CheckOutlined
 } from '@ant-design/icons';
 import DocumentSummary from './DocumentSummary';
 import CommentList from './CommentList';
 import ChatWindow from './ChatWindow';
 import { logger } from '../../api';
 import '../styles/components.css';
-import { performAnalysis, explainText } from '../../api';
+import { performAnalysis, explainText, redraftText } from '../../api';
 import ClauseAnalysis from './ClauseAnalysis';
 import { analyzeDocumentClauses } from '../../api';
 import { analyzeParties } from '../../api';
@@ -91,6 +93,18 @@ const AppContent = () => {
   // Add new state variables
   const [isExplaining, setIsExplaining] = useState(false);
   const [explanation, setExplanation] = useState(null);
+
+  const redraftTextAreaRef = useRef(null);
+  const { TextArea } = Input;
+
+  useEffect(() => {
+    if (isRedraftModalVisible && redraftTextAreaRef.current) {
+      const timer = setTimeout(() => {
+        redraftTextAreaRef.current.focus();
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [isRedraftModalVisible]);
 
   const HARDCODED_ANALYSIS = {
     "acceptable": [
@@ -526,6 +540,60 @@ const AppContent = () => {
     }
   };
 
+  // Add the redraft handler
+  const handleRedraft = async () => {
+    if (!selectedText) return;
+    
+    try {
+      setGeneratingRedrafts(prev => new Map(prev).set(selectedText, true));
+      
+      const result = await redraftText(
+        selectedText,
+        documentContent,
+        redraftContent // Optional instructions
+      );
+      
+      if (result) {
+        setGeneratedRedraft({
+          originalText: selectedText,
+          redraftedText: result,
+          instructions: redraftContent,
+          timestamp: new Date().toISOString()
+        });
+      }
+    } catch (error) {
+      logger.error('Error generating redraft:', error);
+      message.error('Failed to generate redraft: ' + error.message);
+    } finally {
+      setGeneratingRedrafts(prev => {
+        const newMap = new Map(prev);
+        newMap.delete(selectedText);
+        return newMap;
+      });
+      setRedraftContent(''); // Clear instructions
+    }
+  };
+
+  // Add the accept redraft handler
+  const handleAcceptRedraft = async () => {
+    if (!generatedRedraft) return;
+    
+    try {
+      await Word.run(async (context) => {
+        const selection = context.document.getSelection();
+        selection.insertText(generatedRedraft.redraftedText, Word.InsertLocation.replace);
+        await context.sync();
+        
+        setRedraftedTexts(prev => new Map(prev).set(generatedRedraft.originalText, generatedRedraft.redraftedText));
+        setGeneratedRedraft(null);
+        message.success('Redraft applied successfully');
+      });
+    } catch (error) {
+      logger.error('Error applying redraft:', error);
+      message.error('Failed to apply redraft: ' + error.message);
+    }
+  };
+
   const renderContent = () => {
     switch (activeView) {
       case 'summary':
@@ -677,15 +745,19 @@ const AppContent = () => {
                     icon={<EditOutlined />}
                     className="flex items-center gap-2 !px-4 !h-9"
                     disabled={!selectedText}
-                    onClick={() => {/* Handle redraft action */}}
+                    loading={generatingRedrafts.get(selectedText)}
+                    onClick={() => {
+                      setRedraftContent('');
+                      setIsRedraftModalVisible(true);
+                    }}
                   >
-                    Redraft
+                    {generatingRedrafts.get(selectedText) ? 'Redrafting...' : 'Redraft'}
                   </Button>
                 </div>
               </div>
             </div>
 
-            {/* Explanation Panel */}
+            {/* Explanation Preview Card */}
             {explanation && (
               <div className="px-4 mt-2">
                 <div className="bg-gray-50 rounded-xl shadow-sm p-4 border border-gray-100">
@@ -703,11 +775,69 @@ const AppContent = () => {
                       />
                     </div>
                     <div className="bg-white rounded p-3 border border-gray-100">
+                      <Text className="text-sm text-gray-500">Selected text:</Text>
+                      <div className="mt-1 text-sm border-l-2 border-blue-400 pl-3">
+                        {explanation.text}
+                      </div>
+                    </div>
+                    <div className="bg-white rounded p-3 border border-gray-100">
+                      <Text className="text-sm text-gray-500">Explanation:</Text>
                       <div className="mt-1 text-sm border-l-2 border-green-400 pl-3">
                         {explanation.explanation}
                       </div>
                     </div>
+                    <Text type="secondary" className="text-xs text-right">
+                      {new Date(explanation.timestamp).toLocaleTimeString()}
+                    </Text>
+                  </div>
+                </div>
+              </div>
+            )}
 
+            {/* Redraft Preview Card */}
+            {generatedRedraft && (
+              <div className="px-4 mt-2">
+                <div className="bg-gray-50 rounded-xl shadow-sm p-4 border border-gray-100">
+                  <div className="flex flex-col gap-2">
+                    <div className="flex items-center justify-between">
+                      <Text type="secondary" className="text-xs">
+                        Redraft Suggestion
+                      </Text>
+                      <Button 
+                        type="text" 
+                        size="small"
+                        className="!text-gray-400 hover:!text-gray-600"
+                        icon={<CloseOutlined />}
+                        onClick={() => setGeneratedRedraft(null)}
+                      />
+                    </div>
+                    
+                    <div className="bg-white rounded p-3 border border-gray-100">
+                      <div className="mt-1 text-sm border-l-2 border-green-400 pl-3">
+                        {generatedRedraft.redraftedText}
+                      </div>
+                    </div>
+                    
+                    <div className="flex justify-end gap-2 mt-2">
+                      <Button 
+                        size="small"
+                        type="text"
+                        className="text-gray-500 hover:text-gray-700"
+                        icon={<RedoOutlined />}
+                        onClick={handleRedraft}
+                      >
+                        Regenerate
+                      </Button>
+                      <Button 
+                        type="primary"
+                        size="small"
+                        icon={<CheckOutlined />}
+                        onClick={handleAcceptRedraft}
+                      >
+                        Accept
+                      </Button>
+                    </div>
+                    
                   </div>
                 </div>
               </div>
@@ -901,6 +1031,53 @@ const AppContent = () => {
                 </div>
               </div>
             </div>
+
+            {/* Redraft Instructions Modal */}
+            <Modal
+              title={
+                <div className="modal-title">
+                  <EditOutlined className="modal-icon" />
+                  <span>Redraft with Cornelia</span>
+                </div>
+              }
+              open={isRedraftModalVisible}
+              onCancel={() => {
+                setIsRedraftModalVisible(false);
+                setRedraftContent('');
+              }}
+              footer={
+                <Button 
+                  type="primary"
+                  icon={<CheckCircleOutlined />}
+                  onClick={() => {
+                    setIsRedraftModalVisible(false);
+                    handleRedraft();
+                  }}
+                >
+                  Redraft
+                </Button>
+              }
+              width={360}
+              className="redraft-modal"
+              closeIcon={null}
+            >
+              <TextArea
+                ref={redraftTextAreaRef}
+                rows={5}
+                value={redraftContent}
+                onChange={(e) => setRedraftContent(e.target.value)}
+                onKeyPress={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    setIsRedraftModalVisible(false);
+                    handleRedraft();
+                  }
+                }}
+                placeholder="Give instructions for your redraft..."
+                className="redraft-textarea"
+                autoFocus
+              />
+            </Modal>
           </div>
         );
     }

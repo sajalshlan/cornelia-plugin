@@ -240,6 +240,24 @@ export const redraftComment = async (comment, documentContent, selectedText, ins
   }
 };
 
+export const redraftText = async (selectedText, documentContent, instructions = '') => {
+  try {
+    logger.info('Making redraft request');
+    
+    const response = await api.post('/redraft_text/', {
+      selectedText,
+      documentContent,
+      instructions
+    });
+    logger.info('Redraft response:', response.data);
+    
+    return response.data.success ? response.data.result : null;
+  } catch (error) {
+    logger.error('Error in redrafting text:', error);
+    throw error;
+  }
+};
+
 export const analyzeDocumentClauses = async (text, partyInfo = null) => {
   try {  
     const requestBody = {
@@ -288,6 +306,7 @@ export const analyzeParties = async (text) => {
 
 export const explainText = async (selectedText, contextText) => {
   try {
+
     const response = await api.post('/explain_text/', {
       selectedText,
       contextText
