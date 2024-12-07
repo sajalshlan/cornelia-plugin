@@ -9,7 +9,7 @@ import {
 } from '@ant-design/icons';
 import { replyToComment, redraftComment } from '../../api';
 import { searchAndReplaceText } from '../utils/wordUtils';
-
+import {logger} from '../../api';
 const { TextArea } = Input;
 
 const CommentActions = React.memo(({ comment, onCommentUpdate }) => {
@@ -23,6 +23,7 @@ const CommentActions = React.memo(({ comment, onCommentUpdate }) => {
   const [generatedRedraft, setGeneratedRedraft] = useState(null);
   const replyTextAreaRef = useRef(null);
   const redraftTextAreaRef = useRef(null);
+  const [redraftRangeTracking, setRedraftRangeTracking] = useState(null);
 
   // Effect for AI Reply Modal
   useEffect(() => {
@@ -194,33 +195,48 @@ const CommentActions = React.memo(({ comment, onCommentUpdate }) => {
 
   const handleAcceptRedraft = async () => {
     try {
-      await Word.run(async (context) => {
-        const comments = context.document.body.getComments();
-        comments.load("items");
-        await context.sync();
+        await Word.run(async (context) => {
+            const comments = context.document.body.getComments();
+            comments.load("items");
+            await context.sync();
 
-        const targetComment = comments.items.find(c => c.id === comment.id);
-        if (!targetComment) {
-          throw new Error('Comment not found');
-        }
+            const targetComment = comments.items.find(c => c.id === comment.id);
+            logger.info('targetComment', targetComment);
+            if (!targetComment) {
+                throw new Error('Comment not found');
+            }
 
-        const contentRange = targetComment.getRange();
-        contentRange.load("text");
-        await context.sync();
+            // Get the comment's range and load its properties
+            const contentRange = targetComment.getRange();
+            logger.info('contentRange before load', contentRange);
+            contentRange.load(["text", "start", "end"]);
+            await context.sync();
+            logger.info('content text after load', contentRange.text);
+            logger.info('content start after load', contentRange.start);
+            logger.info('content end after load', contentRange.end);
 
-        const foundRange = await searchAndReplaceText(context, contentRange.text, generatedRedraft.text);
-        if (foundRange) {
-          setGeneratedRedraft(null);
-          message.success('Text redrafted successfully');
-        } else {
-          throw new Error('Could not find the text to redraft');
-        }
-      });
+            // Insert the generated redraft text into the comment's range
+            contentRange.insertText(generatedRedraft.text, Word.InsertLocation.replace);
+
+            // Store range information for undo tracking
+            setRedraftRangeTracking({
+                originalText: contentRange.text,
+                originalStart: contentRange.start,
+                originalEnd: contentRange.end,
+                newStart: contentRange.start, // Updated to reflect actual start after insertion
+                newEnd: contentRange.start + generatedRedraft.text.length, // Calculate new end
+                commentId: comment.id
+            });
+
+            await context.sync();
+            setGeneratedRedraft(null);
+            message.success('Text redrafted successfully');
+        });
     } catch (error) {
-      console.error('Error applying redraft:', error);
-      message.error('Failed to apply redraft: ' + error.message);
+        console.error('Error applying redraft:', error);
+        message.error('Failed to apply redraft: ' + error.message);
     }
-  };
+};
 
   const handleRejectRedraft = () => {
     setGeneratedRedraft(null);
@@ -233,6 +249,10 @@ const CommentActions = React.memo(({ comment, onCommentUpdate }) => {
 
   const handleAcceptAndResolve = async () => {
     try {
+      // First redraft the text using the existing handler
+      // This will set up the redraftRangeTracking
+      await handleAcceptRedraft();
+      
       await Word.run(async (context) => {
         const comments = context.document.body.getComments();
         comments.load("items");
@@ -243,19 +263,9 @@ const CommentActions = React.memo(({ comment, onCommentUpdate }) => {
           throw new Error('Comment not found');
         }
 
-        // First redraft the text
-        const contentRange = targetComment.getRange();
-        contentRange.load("text");
-        await context.sync();
-
-        contentRange.insertText(generatedRedraft.text, Word.InsertLocation.replace);
-        
         // Then resolve the comment
         targetComment.resolved = true;
         await context.sync();
-        
-        setGeneratedRedraft(null);
-        message.success('Text redrafted and comment resolved');
         
         // Update UI state through CommentList with the new content
         onCommentUpdate({ 
@@ -263,10 +273,15 @@ const CommentActions = React.memo(({ comment, onCommentUpdate }) => {
           resolved: true,
           content: generatedRedraft.text // Store the updated content
         });
+        
+        message.success('Text redrafted and comment resolved');
       });
     } catch (error) {
       console.error('Error in accept and resolve:', error);
       message.error('Failed to redraft and resolve: ' + error.message);
+      // Clear tracking state on error
+      setRedraftRangeTracking(null);
+      setGeneratedRedraft(null);
     }
   };
 

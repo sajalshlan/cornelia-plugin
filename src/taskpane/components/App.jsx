@@ -178,34 +178,27 @@ const AppContent = () => {
         docComments.load("items");
         await context.sync();
         
-        // Only process comments during polling
-        // [Existing comment processing code]
-        // Load all properties for comments including replies and resolved status
+        // Load all properties for comments including content and ranges
         docComments.items.forEach(comment => {
           comment.load(["id", "authorName", "content", "creationDate", "replies", "resolved"]);
+          const range = comment.getRange();
+          range.load("text");
         });
         await context.sync();
 
-        const processedComments = docComments.items.map(comment => ({
-          id: comment.id,
-          content: comment.content || '',
-          author: comment.authorName || 'Unknown Author',
-          authorEmail: comment.authorEmail || '',
-          resolved: comment.resolved || false,
-          date: comment.creationDate ? new Intl.DateTimeFormat('en-US', {
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit',
-            second: '2-digit',
-            timeZoneName: 'short'
-          }).format(new Date(comment.creationDate)) : new Date().toLocaleString(),
-          replies: comment.replies ? comment.replies.items.map(reply => ({
-            id: reply.id,
-            content: reply.content || '',
-            author: reply.authorName || 'Unknown Author',
-            date: reply.creationDate ? new Intl.DateTimeFormat('en-US', {
+        const processedComments = await Promise.all(docComments.items.map(async comment => {
+          // Get the actual text from the document for this comment
+          const range = comment.getRange();
+          await context.sync();
+          
+          return {
+            id: comment.id,
+            content: comment.content || '',
+            documentText: range.content, // Store both comment content and actual document text
+            author: comment.authorName || 'Unknown Author',
+            authorEmail: comment.authorEmail || '',
+            resolved: comment.resolved || false,
+            date: comment.creationDate ? new Intl.DateTimeFormat('en-US', {
               year: 'numeric',
               month: 'long',
               day: 'numeric',
@@ -213,15 +206,29 @@ const AppContent = () => {
               minute: '2-digit',
               second: '2-digit',
               timeZoneName: 'short'
-            }).format(new Date(reply.creationDate)) : new Date().toLocaleString(),
-          })) : []
+            }).format(new Date(comment.creationDate)) : new Date().toLocaleString(),
+            replies: comment.replies ? comment.replies.items.map(reply => ({
+              id: reply.id,
+              content: reply.content || '',
+              author: reply.authorName || 'Unknown Author',
+              date: reply.creationDate ? new Intl.DateTimeFormat('en-US', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                timeZoneName: 'short'
+              }).format(new Date(reply.creationDate)) : new Date().toLocaleString(),
+            })) : []
+          };
         }));
 
         // Separate resolved and unresolved comments
         const unresolvedComments = processedComments.filter(comment => !comment.resolved);
         const resolvedComments = processedComments.filter(comment => comment.resolved);
 
-        // Batch state updates
+        // Update states with the latest content from Word
         setComments(unresolvedComments);
         setInitialResolvedComments(resolvedComments);
       });
