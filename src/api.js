@@ -242,14 +242,12 @@ export const redraftComment = async (comment, documentContent, selectedText, ins
 
 export const redraftText = async (selectedText, documentContent, instructions = '') => {
   try {
-    logger.info('Making redraft request');
     
     const response = await api.post('/redraft_text/', {
       selectedText,
       documentContent,
       instructions
     });
-    logger.info('Redraft response:', response.data);
     
     return response.data.success ? response.data.result : null;
   } catch (error) {

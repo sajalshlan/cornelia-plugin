@@ -546,6 +546,7 @@ const AppContent = () => {
     
     try {
       setGeneratingRedrafts(prev => new Map(prev).set(selectedText, true));
+      setIsRedraftModalVisible(false); // Close modal if open
       
       const result = await redraftText(
         selectedText,
@@ -570,7 +571,7 @@ const AppContent = () => {
         newMap.delete(selectedText);
         return newMap;
       });
-      setRedraftContent(''); // Clear instructions
+      setRedraftContent(''); // Clear instructions after use
     }
   };
 
@@ -824,7 +825,10 @@ const AppContent = () => {
                         type="text"
                         className="text-gray-500 hover:text-gray-700"
                         icon={<RedoOutlined />}
-                        onClick={handleRedraft}
+                        onClick={() => {
+                          setRedraftContent(''); // Clear previous instructions
+                          setIsRedraftModalVisible(true); // Show instructions modal
+                        }}
                       >
                         Regenerate
                       </Button>
