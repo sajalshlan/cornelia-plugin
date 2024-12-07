@@ -94,6 +94,10 @@ const AppContent = () => {
   const [isExplaining, setIsExplaining] = useState(false);
   const [explanation, setExplanation] = useState(null);
 
+  // Add new state
+  const [commentDraft, setCommentDraft] = useState(null);
+  const [isAddingComment, setIsAddingComment] = useState(false);
+
   const redraftTextAreaRef = useRef(null);
   const { TextArea } = Input;
 
@@ -595,6 +599,33 @@ const AppContent = () => {
     }
   };
 
+  // Add handleComment function
+  const handleAddComment = async () => {
+    if (!commentDraft?.text || !selectedText) return;
+    
+    try {
+      setIsAddingComment(true);
+      
+      await Word.run(async (context) => {
+        const selection = context.document.getSelection();
+        selection.load('text');
+        await context.sync();
+        
+        const comment = selection.insertComment(commentDraft.text);
+        comment.load('id');
+        await context.sync();
+        
+        message.success('Comment added successfully');
+        setCommentDraft(null);
+      });
+    } catch (error) {
+      logger.error('Error adding comment:', error);
+      message.error('Failed to add comment: ' + error.message);
+    } finally {
+      setIsAddingComment(false);
+    }
+  };
+
   const renderContent = () => {
     switch (activeView) {
       case 'summary':
@@ -727,7 +758,12 @@ const AppContent = () => {
                     icon={<CommentOutlined />}
                     className="flex items-center gap-2 !px-4 !h-9"
                     disabled={!selectedText}
-                    onClick={() => {/* Handle comment action */}}
+                    onClick={() => {
+                      setCommentDraft({
+                        text: '',
+                        timestamp: new Date().toISOString()
+                      });
+                    }}
                   >
                     Comment
                   </Button>
@@ -775,21 +811,12 @@ const AppContent = () => {
                         onClick={() => setExplanation(null)}
                       />
                     </div>
+                    
                     <div className="bg-white rounded p-3 border border-gray-100">
-                      <Text className="text-sm text-gray-500">Selected text:</Text>
-                      <div className="mt-1 text-sm border-l-2 border-blue-400 pl-3">
-                        {explanation.text}
-                      </div>
-                    </div>
-                    <div className="bg-white rounded p-3 border border-gray-100">
-                      <Text className="text-sm text-gray-500">Explanation:</Text>
                       <div className="mt-1 text-sm border-l-2 border-green-400 pl-3">
                         {explanation.explanation}
                       </div>
                     </div>
-                    <Text type="secondary" className="text-xs text-right">
-                      {new Date(explanation.timestamp).toLocaleTimeString()}
-                    </Text>
                   </div>
                 </div>
               </div>
@@ -842,6 +869,62 @@ const AppContent = () => {
                       </Button>
                     </div>
                     
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Comment Preview Card */}
+            {commentDraft && (
+              <div className="px-4 mt-2">
+                <div className="bg-gray-50 rounded-xl shadow-sm p-4 border border-gray-100">
+                  <div className="flex flex-col gap-2">
+                    <div className="flex items-center justify-between">
+                      <Text type="secondary" className="text-xs">
+                        New Comment
+                      </Text>
+                      <Button 
+                        type="text" 
+                        size="small"
+                        className="!text-gray-400 hover:!text-gray-600"
+                        icon={<CloseOutlined />}
+                        onClick={() => setCommentDraft(null)}
+                      />
+                    </div>
+                    
+                    <div className="bg-white rounded p-3 border border-gray-100">
+                      <TextArea
+                        value={commentDraft.text}
+                        onChange={(e) => setCommentDraft(prev => ({
+                          ...prev,
+                          text: e.target.value
+                        }))}
+                        onKeyPress={(e) => {
+                          if (e.key === 'Enter' && !e.shiftKey) {
+                            e.preventDefault();
+                            if (commentDraft.text.trim()) {
+                              handleAddComment();
+                            }
+                          }
+                        }}
+                        placeholder="Type your comment here..."
+                        autoFocus
+                        className="mt-2 border-none focus:shadow-none"
+                        rows={3}
+                      />
+                    </div>
+                    <div className="flex justify-end mt-2">
+                      <Button 
+                        type="primary"
+                        size="small"
+                        icon={<CheckOutlined />}
+                        loading={isAddingComment}
+                        disabled={!commentDraft.text.trim()}
+                        onClick={handleAddComment}
+                      >
+                        Add Comment
+                      </Button>
+                    </div>
                   </div>
                 </div>
               </div>
