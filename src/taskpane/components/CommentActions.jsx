@@ -8,6 +8,7 @@ import {
   SyncOutlined
 } from '@ant-design/icons';
 import { replyToComment, redraftComment } from '../../api';
+import { searchAndReplaceText } from '../utils/wordUtils';
 
 const { TextArea } = Input;
 
@@ -207,11 +208,13 @@ const CommentActions = React.memo(({ comment, onCommentUpdate }) => {
         contentRange.load("text");
         await context.sync();
 
-        contentRange.insertText(generatedRedraft.text, Word.InsertLocation.replace);
-        await context.sync();
-        
-        setGeneratedRedraft(null);
-        message.success('Text redrafted successfully');
+        const foundRange = await searchAndReplaceText(context, contentRange.text, generatedRedraft.text);
+        if (foundRange) {
+          setGeneratedRedraft(null);
+          message.success('Text redrafted successfully');
+        } else {
+          throw new Error('Could not find the text to redraft');
+        }
       });
     } catch (error) {
       console.error('Error applying redraft:', error);

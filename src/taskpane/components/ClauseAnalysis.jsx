@@ -11,7 +11,8 @@ import {
   SyncOutlined,
   UserOutlined
 } from '@ant-design/icons';
-import { logger, redraftComment } from '../../api';
+import { logger, redraftComment} from '../../api';
+import { searchAndReplaceText } from '../utils/wordUtils';
 
 const { Panel } = Collapse;
 const { Text, Title, Paragraph } = Typography;
@@ -139,45 +140,21 @@ const ClauseAnalysis = React.memo(({
         // Get the text to search for - either the current redrafted text or the original
         const searchText = redraftedTexts.get(generatedRedraft.clause.text) || generatedRedraft.clause.text;
         
-        const searchResults = context.document.body.search(searchText);
-        context.load(searchResults);
-        await context.sync();
-
-        if (searchResults.items.length > 0) {
-          searchResults.items[0].insertText(generatedRedraft.text, Word.InsertLocation.replace);
-          await context.sync();
-          
-          // Update both our tracking states
+        const foundRange = await searchAndReplaceText(context, searchText, generatedRedraft.text);
+        if (foundRange) {
+          // Update tracking states
           setRedraftedClauses(prev => new Set([...prev, generatedRedraft.clause.text]));
           setRedraftedTexts(prev => new Map(prev).set(generatedRedraft.clause.text, generatedRedraft.text));
           
           setGeneratedRedraft(null);
           message.success('Text redrafted successfully');
         } else {
-          // If we can't find the current text, try the original as fallback
-          if (searchText !== generatedRedraft.clause.text) {
-            const originalSearchResults = context.document.body.search(generatedRedraft.clause.text);
-            context.load(originalSearchResults);
-            await context.sync();
-
-            if (originalSearchResults.items.length > 0) {
-              originalSearchResults.items[0].insertText(generatedRedraft.text, Word.InsertLocation.replace);
-              await context.sync();
-              
-              setRedraftedClauses(prev => new Set([...prev, generatedRedraft.clause.text]));
-              setRedraftedTexts(prev => new Map(prev).set(generatedRedraft.clause.text, generatedRedraft.text));
-              
-              setGeneratedRedraft(null);
-              message.success('Text redrafted successfully');
-            } else {
-              throw new Error('Could not find the clause text in the document');
-            }
-          }
+          throw new Error('Could not find the text to redraft');
         }
       });
     } catch (error) {
-      console.error('Error applying redraft:', error);
-      message.error('Failed to apply redraft: ' + error.message);
+      console.error('Error in accept redraft:', error);
+      message.error('Failed to redraft: ' + error.message);
     }
   };
 
