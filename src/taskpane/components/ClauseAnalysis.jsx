@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Collapse, Typography, List, Tag, Spin, Empty, Button, Modal, Input, message, Tooltip } from 'antd';
 import { 
   CheckCircleOutlined, 
@@ -23,18 +23,24 @@ const ClauseAnalysis = React.memo(({
   loading, 
   selectedParty, 
   getTagColor,
-  onChangeParty
+  onChangeParty,
+  isRedraftModalVisible,
+  redraftContent,
+  selectedClause,
+  generatedRedraft,
+  generatingRedrafts,
+  redraftedClauses,
+  redraftedTexts,
+  redraftReviewStates,
+  onRedraftModalVisibility,
+  onRedraftContentChange,
+  onSelectedClauseChange,
+  onGeneratingRedraftsChange,
+  onRedraftedClausesChange,
+  onRedraftedTextsChange,
+  onRedraftReviewStatesChange
 }) => {
-  const [isRedraftModalVisible, setIsRedraftModalVisible] = useState(false);
-  const [redraftContent, setRedraftContent] = useState('');
-  const [selectedClause, setSelectedClause] = useState(null);
-  const [generatedRedraft, setGeneratedRedraft] = useState(null);
   const redraftTextAreaRef = useRef(null);
-  const [generatingRedrafts, setGeneratingRedrafts] = useState(new Map());
-  const [redraftedClauses, setRedraftedClauses] = useState(new Set());
-  const [redraftedTexts, setRedraftedTexts] = useState(new Map());
-  const [redraftReviewStates, setRedraftReviewStates] = useState(new Map());
-
 
   const parseResults = (resultsString) => {
     try {
@@ -99,9 +105,9 @@ const ClauseAnalysis = React.memo(({
     
     try {
       // Set loading state for this specific clause
-      setGeneratingRedrafts(prev => new Map(prev).set(selectedClause.text, true));
-      setIsRedraftModalVisible(false);
-      setRedraftContent('');
+      onGeneratingRedraftsChange(prev => new Map(prev).set(selectedClause.text, true));
+      onRedraftModalVisibility(false);
+      onRedraftContentChange('');
       
       const documentContent = await Word.run(async (context) => {
         const body = context.document.body;
@@ -119,7 +125,7 @@ const ClauseAnalysis = React.memo(({
 
       if (result) {
         // Update redraft review state for this specific clause
-        setRedraftReviewStates(prev => new Map(prev).set(selectedClause.text, {
+        onRedraftReviewStatesChange(prev => new Map(prev).set(selectedClause.text, {
           text: result,
           clause: selectedClause
         }));
@@ -127,7 +133,7 @@ const ClauseAnalysis = React.memo(({
     } catch (error) {
       message.error('Failed to generate redraft: ' + error.message);
     } finally {
-      setGeneratingRedrafts(prev => {
+      onGeneratingRedraftsChange(prev => {
         const next = new Map(prev);
         next.delete(selectedClause.text);
         return next;
@@ -136,12 +142,8 @@ const ClauseAnalysis = React.memo(({
   };
 
   const handleRegenerateRedraft = () => {
-    setGeneratedRedraft(null);
-    setIsRedraftModalVisible(true);
-  };
-
-  const handleRejectRedraft = () => {
-    setGeneratedRedraft(null);
+    onSelectedClauseChange(null);
+    onRedraftModalVisibility(true);
   };
 
   const handleAcceptRedraft = async (item) => {
@@ -159,11 +161,11 @@ const ClauseAnalysis = React.memo(({
         const foundRange = await searchAndReplaceText(context, searchText, redraftState.text);
         if (foundRange) {
           // Update tracking states
-          setRedraftedClauses(prev => new Set([...prev, item.text]));
-          setRedraftedTexts(prev => new Map(prev).set(item.text, redraftState.text));
+          onRedraftedClausesChange(prev => new Set([...prev, item.text]));
+          onRedraftedTextsChange(prev => new Map(prev).set(item.text, redraftState.text));
           
           // Clear the redraft review state for this item
-          setRedraftReviewStates(prev => {
+          onRedraftReviewStatesChange(prev => {
             const next = new Map(prev);
             next.delete(item.text);
             return next;
@@ -181,14 +183,14 @@ const ClauseAnalysis = React.memo(({
   };
 
   const handleRedraftClick = (item) => {
-    setSelectedClause({
+    onSelectedClauseChange({
       ...item,
       text: redraftedTexts.get(item.text) || item.text
     });
-    setIsRedraftModalVisible(true);
+    onRedraftModalVisibility(true);
     
     // Clear any existing redraft review state for this item
-    setRedraftReviewStates(prev => {
+    onRedraftReviewStatesChange(prev => {
       const next = new Map(prev);
       next.delete(item.text);
       return next;
@@ -292,21 +294,20 @@ const ClauseAnalysis = React.memo(({
         </div>
 
         {/* Action Buttons Section */}
-        {type === 'risky' && (
+        {type === 'risky' && !redraftedClauses.has(item.text) && (
           <>
             <div className="mt-3 flex justify-end">
               <Button
-                type={redraftedClauses.has(item.text) ? "default" : "primary"}
+                type="primary"
                 size="middle"
-                icon={redraftedClauses.has(item.text) ? <CheckCircleOutlined /> : <EditOutlined />}
+                icon={<EditOutlined />}
                 onClick={(e) => {
                   e.stopPropagation();
                   handleRedraftClick(item);
                 }}
                 loading={generatingRedrafts.get(item.text)}
-                className={`${redraftedClauses.has(item.text) ? "text-green-600 border-green-600" : ""}`}
               >
-                {redraftedClauses.has(item.text) ? 'Redraft Again' : 'Suggest Improvements'}
+                Suggest Improvements
               </Button>
             </div>
 
@@ -317,7 +318,7 @@ const ClauseAnalysis = React.memo(({
                 <div className="max-h-[200px] overflow-y-auto mb-4">
                   <TextArea
                     value={redraftReviewStates.get(item.text).text}
-                    onChange={e => setRedraftReviewStates(prev => 
+                    onChange={e => onRedraftReviewStatesChange(prev => 
                       new Map(prev).set(item.text, {
                         ...prev.get(item.text),
                         text: e.target.value
@@ -331,7 +332,7 @@ const ClauseAnalysis = React.memo(({
                   <Button 
                     size="small" 
                     onClick={() => {
-                      setRedraftReviewStates(prev => {
+                      onRedraftReviewStatesChange(prev => {
                         const next = new Map(prev);
                         next.delete(item.text);
                         return next;
@@ -449,9 +450,9 @@ const ClauseAnalysis = React.memo(({
         }
         open={isRedraftModalVisible}
         onCancel={() => {
-          setIsRedraftModalVisible(false);
-          setRedraftContent('');
-          setSelectedClause(null);
+          onRedraftModalVisibility(false);
+          onRedraftContentChange('');
+          onSelectedClauseChange(null);
         }}
         footer={
           <Button 
@@ -479,7 +480,7 @@ const ClauseAnalysis = React.memo(({
               ref={redraftTextAreaRef}
               rows={5}
               value={redraftContent}
-              onChange={e => setRedraftContent(e.target.value)}
+              onChange={e => onRedraftContentChange(e.target.value)}
               onKeyPress={handleKeyPress}
               placeholder="Give instructions for redrafting this clause..."
               className="redraft-textarea"
