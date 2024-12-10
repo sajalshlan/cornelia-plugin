@@ -322,4 +322,26 @@ export const explainText = async (selectedText, contextText) => {
   }
 };
 
+// Add this new function for brainstorm chat
+export const brainstormChat = async (message, clauseText, analysis='', documentContent) => {
+  try {
+    const response = await api.post('/brainstorm_chat/', {
+      message,
+      clauseText,
+      analysis,
+      documentContent
+    });
+    
+    if (response.data.success) {
+      return response.data.message;
+    } else {
+      logger.warn('Brainstorm chat returned without success flag');
+      return null;
+    }
+  } catch (error) {
+    logger.error('Error in brainstorm chat:', error);
+    throw error;
+  }
+};
+
 export default api;

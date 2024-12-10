@@ -14,7 +14,8 @@ import {
   InfoCircleOutlined,
   CloseOutlined,
   RedoOutlined,
-  CheckOutlined
+  CheckOutlined,
+  BulbOutlined
 } from '@ant-design/icons';
 import DocumentSummary from './DocumentSummary';
 import CommentList from './CommentList';
@@ -24,7 +25,7 @@ import '../styles/components.css';
 import { performAnalysis, explainText, redraftText } from '../../api';
 import ClauseAnalysis from './ClauseAnalysis';
 import { analyzeDocumentClauses } from '../../api';
-import { analyzeParties } from '../../api';
+import { analyzeParties, brainstormChat } from '../../api';
 const { Text } = Typography;
 
 const { Content } = Layout;
@@ -100,6 +101,11 @@ const AppContent = () => {
 
   const redraftTextAreaRef = useRef(null);
   const { TextArea } = Input;
+
+  // Add near other state declarations
+  const [isBrainstormModalVisible, setIsBrainstormModalVisible] = useState(false);
+  const [brainstormMessages, setBrainstormMessages] = useState([]);
+  const [brainstormLoading, setBrainstormLoading] = useState(false);
 
   useEffect(() => {
     if (isRedraftModalVisible && redraftTextAreaRef.current) {
@@ -626,6 +632,45 @@ const AppContent = () => {
     }
   };
 
+  const handleBrainstormSubmit = async (messageText) => {
+    try {
+      setBrainstormLoading(true);
+      
+      // Add user message
+      setBrainstormMessages(prev => [...prev, {
+        role: 'user',
+        content: messageText,
+        timestamp: new Date().toLocaleTimeString()
+      }]);
+
+      // Call the brainstorm API
+      const result = await brainstormChat(
+        messageText,
+        selectedText,
+        '', // No analysis for direct selection
+        documentContent
+      );
+
+      if (result) {
+        setBrainstormMessages(prev => [...prev, {
+          role: 'assistant',
+          content: result,
+          timestamp: new Date().toLocaleTimeString()
+        }]);
+      }
+    } catch (error) {
+      logger.error('Error in brainstorm:', error);
+      setBrainstormMessages(prev => [...prev, {
+        role: 'assistant',
+        content: 'Sorry, I encountered an error while processing your request.',
+        isError: true,
+        timestamp: new Date().toLocaleTimeString()
+      }]);
+    } finally {
+      setBrainstormLoading(false);
+    }
+  };
+
   const renderContent = () => {
     switch (activeView) {
       case 'summary':
@@ -789,6 +834,18 @@ const AppContent = () => {
                     }}
                   >
                     {generatingRedrafts.get(selectedText) ? 'Redrafting...' : 'Redraft'}
+                  </Button>
+                  <Button
+                    type="default"
+                    icon={<BulbOutlined />}
+                    className="flex items-center gap-2 !px-4 !h-9"
+                    disabled={!selectedText}
+                    onClick={() => {
+                      setIsBrainstormModalVisible(true);
+                      setBrainstormMessages([]);
+                    }}
+                  >
+                    Brainstorm
                   </Button>
                 </div>
               </div>
@@ -1164,6 +1221,40 @@ const AppContent = () => {
                 className="redraft-textarea"
                 autoFocus
               />
+            </Modal>
+
+            {/* Add this modal near other modals */}
+            <Modal
+              title={
+                <div className="modal-title text-sm sm:text-base">
+                  <BulbOutlined className="modal-icon text-purple-500" />
+                  <span>Brainstorm Solutions</span>
+                </div>
+              }
+              open={isBrainstormModalVisible}
+              onCancel={() => {
+                setIsBrainstormModalVisible(false);
+                setBrainstormMessages([]);
+              }}
+              footer={null}
+              width="90vw"
+              className="sm:max-w-[800px] brainstorm-modal"
+            >
+              <div className="flex flex-col h-[600px]">
+                <div className="mb-4 p-3 bg-gray-50 rounded">
+                  <Text strong>Selected Text:</Text>
+                  <div className="mt-2">{selectedText}</div>
+                </div>
+                <div className="flex-1 border rounded-lg overflow-hidden">
+                  <ChatWindow
+                    documentContent={documentContent}
+                    messages={brainstormMessages}
+                    setMessages={setBrainstormMessages}
+                    isLoading={brainstormLoading}
+                    onSubmit={handleBrainstormSubmit}
+                  />
+                </div>
+              </div>
             </Modal>
           </div>
         );

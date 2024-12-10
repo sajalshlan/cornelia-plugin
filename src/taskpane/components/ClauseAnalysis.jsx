@@ -13,8 +13,9 @@ import {
   MessageOutlined,
   BulbOutlined
 } from '@ant-design/icons';
-import { logger, redraftComment} from '../../api';
+import { logger, redraftComment, brainstormChat } from '../../api';
 import { searchAndReplaceText } from '../utils/wordUtils';
+import ChatWindow from './ChatWindow';
 
 const { Panel } = Collapse;
 const { Text, Title, Paragraph } = Typography;
@@ -47,6 +48,11 @@ const ClauseAnalysis = React.memo(({
   const [commentContent, setCommentContent] = useState('');
   const [activeCommentItem, setActiveCommentItem] = useState(null);
   const commentTextAreaRef = useRef(null);
+  const [isBrainstormModalVisible, setIsBrainstormModalVisible] = useState(false);
+  const [brainstormMessages, setBrainstormMessages] = useState([]);
+  const [brainstormLoading, setBrainstormLoading] = useState(false);
+  const [activeBrainstormItem, setActiveBrainstormItem] = useState(null);
+  const [documentContent, setDocumentContent] = useState('');
 
   const parseResults = (resultsString) => {
     try {
@@ -319,9 +325,14 @@ const ClauseAnalysis = React.memo(({
               <Button
                 size="small"
                 icon={<BulbOutlined />}
-                onClick={(e) => {
+                onClick={async (e) => {
                   e.stopPropagation();
-                  message.info('Brainstorm feature coming soon!');
+                  setActiveBrainstormItem(item);
+                  // Fetch document content when opening modal
+                  await fetchDocumentContent();
+                  setIsBrainstormModalVisible(true);
+                  // Reset messages when opening new brainstorm session
+                  setBrainstormMessages([]);
                 }}
                 className="text-purple-500 hover:text-purple-600 border-purple-500 hover:border-purple-600"
               >
@@ -422,6 +433,61 @@ const ClauseAnalysis = React.memo(({
     } catch (error) {
       logger.error('Error adding comment:', error);
       message.error('Failed to add comment');
+    }
+  };
+
+  const handleBrainstormSubmit = async (messageText) => {
+    try {
+      setBrainstormLoading(true);
+      
+      // Add user message
+      setBrainstormMessages(prev => [...prev, {
+        role: 'user',
+        content: messageText,
+        timestamp: new Date().toLocaleTimeString()
+      }]);
+
+      // Call the brainstorm API
+      const result = await brainstormChat(
+        messageText,
+        activeBrainstormItem.text,
+        activeBrainstormItem.explanation,
+        documentContent
+      );
+
+      if (result) {
+        // Add assistant response
+        setBrainstormMessages(prev => [...prev, {
+          role: 'assistant',
+          content: result,
+          timestamp: new Date().toLocaleTimeString()
+        }]);
+      }
+    } catch (error) {
+      logger.error('Error in brainstorm:', error);
+      setBrainstormMessages(prev => [...prev, {
+        role: 'assistant',
+        content: 'Sorry, I encountered an error while processing your request.',
+        isError: true,
+        timestamp: new Date().toLocaleTimeString()
+      }]);
+    } finally {
+      setBrainstormLoading(false);
+    }
+  };
+
+  const fetchDocumentContent = async () => {
+    try {
+      const content = await Word.run(async (context) => {
+        const body = context.document.body;
+        body.load("text");
+        await context.sync();
+        return body.text;
+      });
+      setDocumentContent(content);
+    } catch (error) {
+      logger.error('Error fetching document content:', error);
+      message.error('Failed to fetch document content');
     }
   };
 
@@ -683,6 +749,44 @@ const ClauseAnalysis = React.memo(({
               className="comment-textarea"
             />
           </>
+        )}
+      </Modal>
+
+      <Modal
+        title={
+          <div className="modal-title text-sm sm:text-base">
+            <BulbOutlined className="modal-icon text-purple-500" />
+            <span>Brainstorm Solutions</span>
+          </div>
+        }
+        open={isBrainstormModalVisible}
+        onCancel={() => {
+          setIsBrainstormModalVisible(false);
+          setActiveBrainstormItem(null);
+          setBrainstormMessages([]);
+        }}
+        footer={null}
+        width="90vw"
+        className="sm:max-w-[800px] brainstorm-modal"
+      >
+        {activeBrainstormItem && (
+          <div className="flex flex-col h-[600px]">
+            <div className="mb-4 p-3 bg-gray-50 rounded">
+              <Text strong>Selected Clause:</Text>
+              <div className="mt-2">{activeBrainstormItem.text}</div>
+              <Text strong className="mt-3 block">Analysis:</Text>
+              <div className="mt-1">{activeBrainstormItem.explanation}</div>
+            </div>
+            <div className="flex-1 border rounded-lg overflow-hidden">
+              <ChatWindow
+                documentContent={documentContent}
+                messages={brainstormMessages}
+                setMessages={setBrainstormMessages}
+                isLoading={brainstormLoading}
+                onSubmit={handleBrainstormSubmit}
+              />
+            </div>
+          </div>
         )}
       </Modal>
     </>
