@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Collapse, Typography, List, Tag, Spin, Empty, Button, Modal, Input, message, Tooltip } from 'antd';
 import { 
   CheckCircleOutlined, 
@@ -9,7 +9,9 @@ import {
   EditOutlined,
   CloseCircleOutlined,
   SyncOutlined,
-  UserOutlined
+  UserOutlined,
+  MessageOutlined,
+  BulbOutlined
 } from '@ant-design/icons';
 import { logger, redraftComment} from '../../api';
 import { searchAndReplaceText } from '../utils/wordUtils';
@@ -41,6 +43,10 @@ const ClauseAnalysis = React.memo(({
   onRedraftReviewStatesChange
 }) => {
   const redraftTextAreaRef = useRef(null);
+  const [isCommentModalVisible, setIsCommentModalVisible] = useState(false);
+  const [commentContent, setCommentContent] = useState('');
+  const [activeCommentItem, setActiveCommentItem] = useState(null);
+  const commentTextAreaRef = useRef(null);
 
   const parseResults = (resultsString) => {
     try {
@@ -293,7 +299,34 @@ const ClauseAnalysis = React.memo(({
 
           {/* Action Buttons Section */}
           {type === 'risky' && !redraftedClauses.has(item.text) && (
-            <div className="flex justify-end mt-2">
+            <div className="flex justify-end mt-2 space-x-2">
+              <Button
+                size="small"
+                icon={<MessageOutlined />}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setActiveCommentItem(item);
+                  setIsCommentModalVisible(true);
+                  // Focus the textarea after modal opens
+                  setTimeout(() => {
+                    commentTextAreaRef.current?.focus();
+                  }, 100);
+                }}
+                className="text-blue-500 hover:text-blue-600 border-blue-500 hover:border-blue-600"
+              >
+                Comment
+              </Button>
+              <Button
+                size="small"
+                icon={<BulbOutlined />}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  message.info('Brainstorm feature coming soon!');
+                }}
+                className="text-purple-500 hover:text-purple-600 border-purple-500 hover:border-purple-600"
+              >
+                Brainstorm
+              </Button>
               <Button
                 type="primary"
                 size="small"
@@ -363,6 +396,34 @@ const ClauseAnalysis = React.memo(({
       </div>
     </List.Item>
   );
+
+  const handleAddComment = async () => {
+    if (!activeCommentItem || !commentContent.trim()) return;
+    
+    try {
+      await Word.run(async (context) => {
+        // Search for the clause text
+        const searchResults = context.document.body.search(activeCommentItem.text.substring(0, 255));
+        context.load(searchResults);
+        await context.sync();
+
+        if (searchResults.items.length > 0) {
+          // Add comment to the first occurrence
+          const comment = searchResults.items[0].insertComment(commentContent);
+          await context.sync();
+          
+          // Reset state
+          setIsCommentModalVisible(false);
+          setCommentContent('');
+          setActiveCommentItem(null);
+          message.success('Comment added successfully');
+        }
+      });
+    } catch (error) {
+      logger.error('Error adding comment:', error);
+      message.error('Failed to add comment');
+    }
+  };
 
   return (
     <>
@@ -568,6 +629,58 @@ const ClauseAnalysis = React.memo(({
               onKeyPress={handleKeyPress}
               placeholder="Give instructions for redrafting this clause..."
               className="redraft-textarea"
+            />
+          </>
+        )}
+      </Modal>
+
+      <Modal
+        title={
+          <div className="modal-title text-sm sm:text-base">
+            <MessageOutlined className="modal-icon" />
+            <span>Add Comment</span>
+          </div>
+        }
+        open={isCommentModalVisible}
+        onCancel={() => {
+          setIsCommentModalVisible(false);
+          setCommentContent('');
+          setActiveCommentItem(null);
+        }}
+        footer={
+          <Button 
+            type="primary"
+            icon={<CheckCircleOutlined />}
+            onClick={handleAddComment}
+            disabled={!commentContent.trim()}
+          >
+            Add Comment
+          </Button>
+        }
+        width="90vw"
+        className="sm:max-w-[600px]"
+      >
+        {activeCommentItem && (
+          <>
+            <div className="mb-4 p-3 bg-gray-50 rounded">
+              <Text strong>Selected Clause:</Text>
+              <div className="mt-2">{activeCommentItem.text}</div>
+              <Text strong className="mt-3 block">Analysis:</Text>
+              <div className="mt-1">{activeCommentItem.explanation}</div>
+            </div>
+            <TextArea
+              ref={commentTextAreaRef}
+              rows={5}
+              value={commentContent}
+              onChange={e => setCommentContent(e.target.value)}
+              onKeyPress={e => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  handleAddComment();
+                }
+              }}
+              placeholder="Enter your comment..."
+              className="comment-textarea"
             />
           </>
         )}
