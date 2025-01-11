@@ -225,24 +225,30 @@ const ClauseAnalysis = React.memo(({
     
     return (
       <div className="mb-4 p-4 bg-blue-50 rounded-lg border border-blue-100">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <UserOutlined className="text-blue-500" />
-            <Text strong>Analyzing from perspective of:</Text>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+            <div className="flex items-center gap-2">
+              <UserOutlined className="text-blue-500 flex-shrink-0" />
+              <Text strong className="whitespace-nowrap">Analyzing from perspective of:</Text>
+            </div>
+            <div className="flex flex-col ml-6 sm:ml-0 max-w-full">
+              <Text className="break-words max-w-full">{selectedParty.name}</Text>
+              <Tag 
+                color={getTagColor(selectedParty.role)} 
+                className="mt-1 max-w-full break-words"
+                style={{ whiteSpace: 'normal', height: 'auto' }}
+              >
+                {selectedParty.role}
+              </Tag>
+            </div>
           </div>
           <Button 
             type="link" 
             onClick={onChangeParty}
-            className="text-blue-600 hover:text-blue-800"
+            className="text-blue-600 hover:text-blue-800 whitespace-nowrap"
           >
             Change Party
           </Button>
-        </div>
-        <div className="ml-6">
-          <Text className="block">{selectedParty.name}</Text>
-          <Tag color={getTagColor(selectedParty.role)} className="mt-1">
-            {selectedParty.role}
-          </Tag>
         </div>
       </div>
     );
@@ -305,7 +311,7 @@ const ClauseAnalysis = React.memo(({
 
           {/* Action Buttons Section */}
           {type === 'risky' && !redraftedClauses.has(item.text) && (
-            <div className="flex justify-end mt-2 space-x-2">
+            <div className="flex flex-wrap gap-2 mt-2">
               <Button
                 size="small"
                 icon={<MessageOutlined />}
@@ -318,7 +324,8 @@ const ClauseAnalysis = React.memo(({
                     commentTextAreaRef.current?.focus();
                   }, 100);
                 }}
-                className="text-blue-500 hover:text-blue-600 border-blue-500 hover:border-blue-600"
+                className="flex-1 min-w-[110px] flex items-center justify-center gap-1.5 !px-3 !h-8
+                  text-blue-500 hover:text-blue-600 border-blue-500 hover:border-blue-600"
               >
                 Comment
               </Button>
@@ -334,7 +341,8 @@ const ClauseAnalysis = React.memo(({
                   // Reset messages when opening new brainstorm session
                   setBrainstormMessages([]);
                 }}
-                className="text-purple-500 hover:text-purple-600 border-purple-500 hover:border-purple-600"
+                className="flex-1 min-w-[110px] flex items-center justify-center gap-1.5 !px-3 !h-8
+                  text-purple-500 hover:text-purple-600 border-purple-500 hover:border-purple-600"
               >
                 Brainstorm
               </Button>
@@ -347,7 +355,8 @@ const ClauseAnalysis = React.memo(({
                   handleRedraftClick(item);
                 }}
                 loading={generatingRedrafts.get(item.text)}
-                className="bg-yellow-500 hover:bg-yellow-600 border-yellow-500 hover:border-yellow-600"
+                className="flex-1 min-w-[140px] flex items-center justify-center gap-1.5 !px-3 !h-8
+                  bg-yellow-500 hover:bg-yellow-600 border-yellow-500 hover:border-yellow-600"
               >
                 Suggest Improvements
               </Button>
@@ -371,7 +380,7 @@ const ClauseAnalysis = React.memo(({
                   className="text-sm redraft-preview"
                 />
               </div>
-              <div className="flex justify-end space-x-2">
+              <div className="flex flex-wrap gap-2 justify-end">
                 <Button 
                   size="small" 
                   onClick={() => {
@@ -381,14 +390,14 @@ const ClauseAnalysis = React.memo(({
                       return next;
                     });
                   }}
-                  className="hover:bg-red-600 hover:text-white hover:border-red-600 transition-colors"
+                  className="flex-1 sm:flex-none min-w-[80px] hover:bg-red-600 hover:text-white hover:border-red-600 transition-colors"
                 >
                   Reject
                 </Button>
                 <Button 
                   size="small" 
                   onClick={() => handleRegenerateRedraft(item)}
-                  className="hover:bg-blue-600 hover:text-white hover:border-blue-600 transition-colors"
+                  className="flex-1 sm:flex-none min-w-[80px] hover:bg-blue-600 hover:text-white hover:border-blue-600 transition-colors"
                 >
                   Regenerate
                 </Button>
@@ -396,7 +405,7 @@ const ClauseAnalysis = React.memo(({
                   size="small" 
                   type="primary" 
                   onClick={() => handleAcceptRedraft(item)}
-                  className="bg-green-500 hover:bg-green-600 border-green-500 hover:border-green-600"
+                  className="flex-1 sm:flex-none min-w-[80px] bg-green-500 hover:bg-green-600 border-green-500 hover:border-green-600"
                 >
                   Accept Changes
                 </Button>
@@ -548,12 +557,12 @@ const ClauseAnalysis = React.memo(({
                             onClick={(e) => {
                               e.stopPropagation();
                               const redraftedText = redraftedTexts.get(item.text);
-                              logger.info("Attempting to scroll to redrafted text:", {
-                                redraftedText: redraftedText?.substring(0, 100),
-                                originalText: item.text?.substring(0, 100),
-                                hasRedraft: !!redraftedText,
-                                textLength: redraftedText?.length
-                              });
+                              // logger.info("Attempting to scroll to redrafted text:", {
+                              //   redraftedText: redraftedText?.substring(0, 100),
+                              //   originalText: item.text?.substring(0, 100),
+                              //   hasRedraft: !!redraftedText,
+                              //   textLength: redraftedText?.length
+                              // });
                               
                               if (!redraftedText) {
                                 message.warning('Redrafted text not found');
@@ -768,16 +777,20 @@ const ClauseAnalysis = React.memo(({
         footer={null}
         width="90vw"
         className="sm:max-w-[800px] brainstorm-modal"
+        style={{ 
+          maxHeight: '90vh',
+          top: 20
+        }}
       >
         {activeBrainstormItem && (
-          <div className="flex flex-col h-[600px]">
-            <div className="mb-4 p-3 bg-gray-50 rounded">
+          <div className="flex flex-col h-[calc(90vh-120px)] sm:h-[600px]">
+            <div className="mb-4 p-3 bg-gray-50 rounded overflow-y-auto max-h-[30vh]">
               <Text strong>Selected Clause:</Text>
               <div className="mt-2">{activeBrainstormItem.text}</div>
               <Text strong className="mt-3 block">Analysis:</Text>
               <div className="mt-1">{activeBrainstormItem.explanation}</div>
             </div>
-            <div className="flex-1 border rounded-lg overflow-hidden">
+            <div className="flex-1 border rounded-lg overflow-hidden min-h-[300px]">
               <ChatWindow
                 documentContent={documentContent}
                 messages={brainstormMessages}

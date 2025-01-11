@@ -797,11 +797,11 @@ const AppContent = () => {
             {/* Actions Panel Card */}
             <div className="px-4">
               <div className="bg-white rounded-xl shadow-sm p-4 border border-gray-100 hover:border-blue-400 hover:shadow-md transition-all duration-200">
-                <div className="flex items-center gap-3">
+                <div className="flex flex-wrap gap-2">
                   <Button
                     type="default"
                     icon={<CommentOutlined />}
-                    className="flex items-center gap-2 !px-4 !h-9"
+                    className="flex-1 min-w-[120px] flex items-center justify-center gap-2 !px-4 !h-9"
                     disabled={!selectedText}
                     onClick={() => {
                       setCommentDraft({
@@ -815,7 +815,7 @@ const AppContent = () => {
                   <Button
                     type="default"
                     icon={<InfoCircleOutlined />}
-                    className="flex items-center gap-2 !px-4 !h-9"
+                    className="flex-1 min-w-[120px] flex items-center justify-center gap-2 !px-4 !h-9"
                     disabled={!selectedText}
                     loading={isExplaining}
                     onClick={handleExplain}
@@ -825,7 +825,7 @@ const AppContent = () => {
                   <Button
                     type="default"
                     icon={<EditOutlined />}
-                    className="flex items-center gap-2 !px-4 !h-9"
+                    className="flex-1 min-w-[120px] flex items-center justify-center gap-2 !px-4 !h-9"
                     disabled={!selectedText}
                     loading={generatingRedrafts.get(selectedText)}
                     onClick={() => {
@@ -838,7 +838,7 @@ const AppContent = () => {
                   <Button
                     type="default"
                     icon={<BulbOutlined />}
-                    className="flex items-center gap-2 !px-4 !h-9"
+                    className="flex-1 min-w-[120px] flex items-center justify-center gap-2 !px-4 !h-9"
                     disabled={!selectedText}
                     onClick={() => {
                       setIsBrainstormModalVisible(true);

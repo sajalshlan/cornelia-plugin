@@ -169,11 +169,9 @@ const ChatWindow = ({
   };
 
   return (
-    <div className="flex flex-col h-full bg-white">
-
-
-      {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4" ref={chatContainerRef}>
+    <div className="flex flex-col h-full">
+      {/* Messages area - scrollable */}
+      <div className="flex-1 overflow-y-auto p-4">
         {messages.map((message, index) => {
           const isSystemMessage = message.isInitialTip || message.isError;
           
@@ -222,9 +220,9 @@ const ChatWindow = ({
           </div>
         )}
       </div>
-
-      {/* Input */}
-      <div className="p-4 border-t border-gray-200">
+      
+      {/* Input area - fixed at bottom */}
+      <div className="border-t p-4 bg-white">
         <form onSubmit={handleSubmit} className="flex items-center gap-2">
           <Input
             value={input}
