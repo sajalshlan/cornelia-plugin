@@ -246,18 +246,18 @@ const AppContent = () => {
         // Enhanced parties analysis handling
         try {
           setIsLoadingParties(true);
-          // const result = await analyzeParties(body.text);
-          // // logger.info('Parties result:', result);
-          // // Parse the string result into an object
-          // let parsedResult;
-          // try {
-          //   parsedResult = JSON.parse(result);
-          // } catch (parseError) {
-          //   logger.error('Error parsing parties result:', parseError);
-          //   setParties([]);
-          //   return;
-          // }
-          const parsedResult = HARDCODED_PARTIES;
+          const result = await analyzeParties(body.text);
+          // logger.info('Parties result:', result);
+          // Parse the string result into an object
+          let parsedResult;
+          try {
+            parsedResult = JSON.parse(result);
+          } catch (parseError) {
+            logger.error('Error parsing parties result:', parseError);
+            setParties([]);
+            return;
+          }
+          // const parsedResult = HARDCODED_PARTIES;
           // Handle the parsed result
           if (parsedResult && (Array.isArray(parsedResult) || typeof parsedResult === 'object')) {
             const partiesArray = Array.isArray(parsedResult) ? parsedResult : 
@@ -1056,39 +1056,40 @@ const AppContent = () => {
                               setSelectedParty(selectedParty);
                               try {
                                 setClauseAnalysisLoading(true);
-                                // const result = await analyzeDocumentClauses(documentContent, {
-                                //   name: selectedParty.name,
-                                //   role: selectedParty.role
-                                // });
+                                const result = await analyzeDocumentClauses(documentContent, {
+                                  name: selectedParty.name,
+                                  role: selectedParty.role
+                                });
 
-                                // // If result is null or undefined, throw error
-                                // if (!result) {
-                                //   throw new Error('No analysis results received');
-                                // }
+                                // If result is null or undefined, throw error
+                                if (!result) {
+                                  throw new Error('No analysis results received');
+                                }
 
-                                // // Handle different result types
-                                // let parsedResult;
-                                // if (typeof result === 'string') {
-                                //   try {
-                                //     parsedResult = JSON.parse(result);
-                                //   } catch (parseError) {
-                                //     logger.error('JSON Parse error:', {
-                                //       error: parseError,
-                                //       result: result?.substring(0, 100) // Log first 100 chars
-                                //     });
-                                //     throw new Error('Invalid JSON response');
-                                //   }
-                                // } else if (typeof result === 'object') {
-                                //   parsedResult = result;
-                                // } else {
-                                //   throw new Error('Unexpected result type');
-                                // }
+                                // Handle different result types
+                                let parsedResult;
+                                if (typeof result === 'string') {
+                                  try {
+                                    parsedResult = JSON.parse(result);
+                                  } catch (parseError) {
+                                    logger.error('JSON Parse error:', {
+                                      error: parseError,
+                                      result: result?.substring(0, 100) // Log first 100 chars
+                                    });
+                                    throw new Error('Invalid JSON response');
+                                  }
+                                } else if (typeof result === 'object') {
+                                  parsedResult = result;
+                                } else {
+                                  throw new Error('Unexpected result type');
+                                }
 
-                                // // Validate structure
-                                // if (!parsedResult || !parsedResult.acceptable || !parsedResult.risky || !parsedResult.missing) {
-                                //   throw new Error('Invalid analysis result structure');
-                                // }
-                                const parsedResult = HARDCODED_ANALYSIS;
+                                // Validate structure
+                                if (!parsedResult || !parsedResult.acceptable || !parsedResult.risky || !parsedResult.missing) {
+                                  throw new Error('Invalid analysis result structure');
+                                }
+
+                                // const parsedResult = HARDCODED_ANALYSIS;
 
                                 // Store the parsed result
                                 setClauseAnalysis(parsedResult);
