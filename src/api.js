@@ -1,7 +1,8 @@
 import axios from 'axios';
 import { getTokens, clearTokens, isTokenExpired } from './taskpane/services/auth';
 
-const BASE_URL = 'https://127.0.0.1:8000/api';
+// const BASE_URL = 'https://127.0.0.1:8000/api';
+const BASE_URL = 'http://cornelialegal.ai/api';
 
 // Create a debug output div with better styling
 const createDebugDiv = () => {

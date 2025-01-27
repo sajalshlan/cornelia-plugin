@@ -91,7 +91,7 @@ module.exports = async (env, options) => {
       port: 3001,
       proxy: [{
         '/api': {
-          target: 'https://127.0.0.1:8000',
+          target: 'https://cornelialegal.ai',
           secure: false,
           changeOrigin: true,
           pathRewrite: { '^/api': '/api' },
