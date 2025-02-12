@@ -2,7 +2,7 @@ import axios from 'axios';
 import { getTokens, clearTokens, isTokenExpired } from './taskpane/services/auth';
 
 // const BASE_URL = 'https://127.0.0.1:8000/api';
-const BASE_URL = 'http://cornelialegal.ai/api';
+const BASE_URL = 'https://cornelialegal.ai/api';
 
 // Create a debug output div with better styling
 const createDebugDiv = () => {
@@ -128,35 +128,35 @@ api.interceptors.response.use(
 );
 
 // Debug interceptor
-// api.interceptors.request.use(request => {
-//   logger.info('Starting Request: %O', {
-//     url: request.url,
-//     method: request.method,
-//     headers: request.headers,
-//     baseURL: request.baseURL
-//   });
-//   return request;
-// });
+api.interceptors.request.use(request => {
+  logger.info('Starting Request', {
+    url: request.url,
+    method: request.method,
+    headers: {...request.headers},  // Spread to avoid circular reference
+    baseURL: request.baseURL
+  });
+  return request;
+});
 
-// api.interceptors.response.use(
-//   response => {
-//     logger.info('Response: %O', {
-//       status: response.status,
-//       headers: response.headers,
-//       data: response.data
-//     });
-//     return response;
-//   },
-//   error => {
-//     logger.error('Response Error: %O', {
-//       message: error.message,
-//       status: error.response?.status,
-//       data: error.response?.data,
-//       headers: error.response?.headers
-//     });
-//     return Promise.reject(error);
-//   }
-// );
+api.interceptors.response.use(
+  response => {
+    logger.info('Response', {
+      status: response.status,
+      headers: {...response.headers},  // Spread to avoid circular reference
+      data: response.data
+    });
+    return response;
+  },
+  error => {
+    logger.error('Response Error', {
+      message: error.message,
+      status: error.response?.status,
+      data: error.response?.data,
+      headers: error.response?.headers
+    });
+    return Promise.reject(error);
+  }
+);
 
 export const performAnalysis = async (type, text, fileName, onProgress, signal) => {
   // logger.info(`🚀 Starting ${type} analysis for ${fileName}...`);

@@ -18,7 +18,7 @@
       <AppDomains>
     <AppDomain>localhost:3001</AppDomain>
     <AppDomain>10d5-110-235-232-7.ngrok-free.app</AppDomain>
-    <AppDomain>https://127.0.0.1:8000</AppDomain>
+    <AppDomain>https://cornelialegal.ai</AppDomain>
 
   </AppDomains>
 
